@@ -5,12 +5,15 @@ import express, { Request, Response } from "express";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import { MeterReading, ApiResponse, ProcessingMetrics } from "./types";
 
 // Konfiguration
-const SUPABASE_URL = process.env.SUPABASE_URL || "";
-const SUPABASE_KEY = process.env.SUPABASE_KEY || "";
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
-const PORT = process.env.PORT || 3000;
+const SUPABASE_URL: string = process.env.SUPABASE_URL || "";
+const SUPABASE_KEY: string = process.env.SUPABASE_KEY || "";
+const ANTHROPIC_API_KEY: string = process.env.ANTHROPIC_API_KEY || "";
+const PORT: number = parseInt(process.env.PORT || "3000", 10);
+const MAX_FILE_SIZE_MB: number = parseInt(process.env.MAX_FILE_SIZE_MB || "5", 10);
+const MAX_FILE_SIZE: number = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 // Validate required environment variables
 if (!SUPABASE_URL) {
@@ -29,29 +32,68 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Express Setup
 const app = express();
-const upload = multer({ dest: "uploads/" });
 
-// Types
-interface MeterReading {
-  meter_id: string;
-  meter_type: "electricity" | "water" | "gas" | "unknown";
-  reading_value: number;
-  unit: string;
-  confidence: "high" | "medium" | "low";
-  raw_response: string;
-}
+// Multer Konfiguration mit Größenlimit
+const upload = multer({
+  dest: "uploads/",
+  limits: { fileSize: MAX_FILE_SIZE },
+  fileFilter: (req, file, cb) => {
+    // Nur Bilddateien akzeptieren
+    if (!file.mimetype.startsWith("image/")) {
+      cb(new Error("Nur Bilddateien sind erlaubt"));
+    } else {
+      cb(null, true);
+    }
+  },
+});
 
-interface ApiResponse {
-  success: boolean;
-  data?: MeterReading;
-  error?: string;
-}
+// Middleware
+app.use(express.json());
+
+// Logging Middleware
+app.use((req: Request, res: Response, next) => {
+  const start = Date.now();
+  const originalJson = res.json.bind(res);
+
+  res.json = function (data: any) {
+    const duration = Date.now() - start;
+    console.log(
+      `${new Date().toISOString()} - ${req.method} ${req.path} - ${res.statusCode} - ${duration}ms`
+    );
+    return originalJson(data);
+  };
+
+  next();
+});
+
+// Fehlerbehandlung Middleware
+app.use((err: any, req: Request, res: Response, next: any) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({
+        success: false,
+        error: `Datei zu groß. Maximum: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+      });
+    }
+  }
+
+  console.error("Fehler:", err);
+  res.status(500).json({
+    success: false,
+    error: err.message || "Unbekannter Fehler",
+  });
+});
 
 // Hauptfunktion: Zählerstand vom Bild erkennen
-async function readMeterFromImage(imagePath: string): Promise<MeterReading> {
+async function readMeterFromImage(
+  imagePath: string
+): Promise<{ reading: MeterReading; metrics: ProcessingMetrics }> {
+  const startTime = Date.now();
+
   // Bild in Base64 konvertieren
   const imageBuffer = fs.readFileSync(imagePath);
   const base64Image = imageBuffer.toString("base64");
+  const imageSize = imageBuffer.length;
 
   // MIME-Type basierend auf Dateiendung bestimmen
   const ext = path.extname(imagePath).toLowerCase();
@@ -60,15 +102,14 @@ async function readMeterFromImage(imagePath: string): Promise<MeterReading> {
     ".jpeg": "image/jpeg",
     ".png": "image/png",
     ".gif": "image/gif",
-    ".heic": "image/heic",
     ".webp": "image/webp",
   };
-  const mimeType = mimeTypeMap[ext] || "image/jpeg";
+  const mimeType: string = mimeTypeMap[ext] || "image/jpeg";
 
   // Claude Vision API aufrufen
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-5-20250929",
-    max_tokens: 1024,
+    max_tokens: 2048,
     messages: [
       {
         role: "user",
@@ -90,20 +131,46 @@ async function readMeterFromImage(imagePath: string): Promise<MeterReading> {
             text: `Analysiere dieses Bild eines Zählerstands (Stromzähler, Wasserzähler oder Gaszähler) und extrahiere folgende Informationen im JSON-Format:
 
 {
-  "meter_id": "Die ID/Seriennummer des Zählers (falls sichtbar, sonst null)",
+  "meter_id": "Die ID/Seriennummer des Zählers (falls sichtbar, sonst 'UNKNOWN')",
   "meter_type": "electricity" | "water" | "gas" | "unknown",
   "reading_value": Die Zahl die der Zähler anzeigt (nur Ziffern, als Nummer),
-  "unit": "kWh" | "m³" | "unknown",
+  "unit": "kWh" | "m3" | "unknown",
   "confidence": "high" | "medium" | "low",
-  "notes": "Zusätzliche Anmerkungen"
+  "confidence_score": 0.0 bis 1.0 (numerischer Wert)
 }
 
 Wichtig:
 - Erkenne den Zählertyp basierend auf Design und Beschriftung
-- Extrahiere die angezeigte Zahl genau (ignoriere Dezimalstellen nach dem ersten Komma wenn nicht klar)
-- Die Meter-ID ist normalerweise auf dem Zähler gedruckt
-- Setze confidence basierend auf Bildqualität und Lesbarkeit
-- Antworte NUR mit gültigem JSON, nichts anderes!`,
+- Extrahiere die angezeigte Zahl genau
+- Die Meter-ID ist normalerweise auf dem Zähler gedruckt (rechts oben oder unten)
+- Setze confidence basierend auf Bildqualität, Lesbarkeit und Deutlichkeit
+- confidence_score sollte zwischen 0.0 (sehr unsicher) und 1.0 (sehr sicher) liegen
+- Antworte NUR mit reinem JSON-Objekt
+- KEINE Markdown-Formatierung (keine \`\`\`json Blöcke)
+- Keine zusätzlichen Erklärungen oder Text
+- Nur das reine JSON-Objekt!
+
+Wichtig bei Stromzähler:
+- Die letzte angezeigte Ziffer steht IMMER hinter dem Dezimalkomma. Der Zähler zeigt maximal eine Nachkommastelle an.
+  Beispiele:
+    * Anzeige "317818" → Zählerstand: 31781,8 kWh
+    * Anzeige "45041" → Zählerstand: 4504,1 kWh
+    * Anzeige "100025" → Zählerstand: 10002,5 kWh
+  Hinweise:
+    * Der Dezimalpunkt ist oft sehr klein und schwer erkennbar auf dem Display
+    * Ignoriere den Punkt nicht, auch wenn er kaum sichtbar ist
+    * Die Einheit ist immer kWh (Kilowattstunden)
+    * Es gibt keine zwei Nachkommastellen, sondern nur eine
+  Gib mir den vollständigen Zählerstand im Format: XXXXX,X kWh
+
+Wichtig bei Gaszähler:
+- Die letzten 3 angezeigte Ziffern steht IMMER hinter dem Dezimalkomma.
+- Kubikmeter und Liter nach dem Dezimalpunkt sind oft farblich voneinander getrennt
+- Die Einheit ist immer m³ (Kubikmeter)
+- Es gibt drei Nachkommastellen für die Liter
+- Gib mir den vollständigen Zählerstand im Format: XXXXX,XXX m³
+  
+`,
           },
         ],
       },
@@ -123,6 +190,9 @@ Wichtig:
     );
   }
 
+  const processingTime = Date.now() - startTime;
+  const confidenceScore = parsedResponse.confidence_score || 0.5;
+
   const meterReading: MeterReading = {
     meter_id: parsedResponse.meter_id || "UNKNOWN",
     meter_type: parsedResponse.meter_type || "unknown",
@@ -132,11 +202,20 @@ Wichtig:
     raw_response: responseText,
   };
 
-  return meterReading;
+  const metrics: ProcessingMetrics = {
+    processing_time_ms: processingTime,
+    image_size_bytes: imageSize,
+    confidence_score: confidenceScore,
+  };
+
+  return { reading: meterReading, metrics };
 }
 
 // Daten zu Supabase speichern
-async function saveMeterReadingToSupabase(reading: MeterReading) {
+async function saveMeterReadingToSupabase(
+  reading: MeterReading,
+  metrics: ProcessingMetrics
+) {
   const { data, error } = await supabase
     .from("meter_readings")
     .insert([
@@ -146,6 +225,9 @@ async function saveMeterReadingToSupabase(reading: MeterReading) {
         reading_value: reading.reading_value,
         unit: reading.unit,
         confidence: reading.confidence,
+        confidence_score: metrics.confidence_score,
+        processing_time_ms: metrics.processing_time_ms,
+        image_size_bytes: metrics.image_size_bytes,
         created_at: new Date().toISOString(),
       },
     ])
@@ -170,15 +252,16 @@ app.post(
         res.status(400).json({
           success: false,
           error: "Kein Bild hochgeladen",
+          timestamp: new Date().toISOString(),
         } as ApiResponse);
         return;
       }
 
       // Zählerstand vom Bild erkennen
-      const meterReading = await readMeterFromImage(req.file.path);
+      const { reading, metrics } = await readMeterFromImage(req.file.path);
 
       // Zu Supabase speichern
-      const supabaseData = await saveMeterReadingToSupabase(meterReading);
+      const supabaseData = await saveMeterReadingToSupabase(reading, metrics);
 
       // Temporäre Datei löschen
       fs.unlinkSync(req.file.path);
@@ -186,14 +269,20 @@ app.post(
       res.json({
         success: true,
         data: {
-          ...meterReading,
+          ...reading,
+          metrics: metrics,
           supabase_id: supabaseData?.[0]?.id,
         },
+        timestamp: new Date().toISOString(),
       } as ApiResponse);
     } catch (error) {
       // Temporäre Datei bei Fehler löschen
       if (req.file) {
-        fs.unlinkSync(req.file.path);
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (e) {
+          /* ignorieren */
+        }
       }
 
       console.error("Fehler:", error);
@@ -201,6 +290,7 @@ app.post(
         success: false,
         error:
           error instanceof Error ? error.message : "Unbekannter Fehler",
+        timestamp: new Date().toISOString(),
       } as ApiResponse);
     }
   }
@@ -209,10 +299,21 @@ app.post(
 // GET /api/readings - Alle gespeicherten Messwerte abrufen
 app.get("/api/readings", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { data, error } = await supabase
+    const { meter_id, limit = 100, offset = 0 } = req.query;
+
+    let query = supabase
       .from("meter_readings")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (meter_id) {
+      query = query.eq("meter_id", meter_id as string);
+    }
+
+    const { data, error } = await query.range(
+      Number(offset),
+      Number(offset) + Number(limit) - 1
+    );
 
     if (error) {
       throw new Error(`Supabase Fehler: ${error.message}`);
@@ -221,11 +322,13 @@ app.get("/api/readings", async (req: Request, res: Response): Promise<void> => {
     res.json({
       success: true,
       data: data,
+      timestamp: new Date().toISOString(),
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : "Unbekannter Fehler",
+      timestamp: new Date().toISOString(),
     });
   }
 });
@@ -236,12 +339,14 @@ app.get(
   async (req: Request, res: Response): Promise<void> => {
     try {
       const { meter_id } = req.params;
+      const { limit = 100, offset = 0 } = req.query;
 
       const { data, error } = await supabase
         .from("meter_readings")
         .select("*")
         .eq("meter_id", meter_id)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(Number(offset), Number(offset) + Number(limit) - 1);
 
       if (error) {
         throw new Error(`Supabase Fehler: ${error.message}`);
@@ -250,25 +355,92 @@ app.get(
       res.json({
         success: true,
         data: data,
+        timestamp: new Date().toISOString(),
       });
     } catch (error) {
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : "Unbekannter Fehler",
+        timestamp: new Date().toISOString(),
       });
     }
   }
 );
 
+// GET /api/stats - Aggregierte Statistiken
+app.get("/api/stats", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { meter_id } = req.query;
+
+    let query = supabase.from("meter_readings").select("*");
+
+    if (meter_id) {
+      query = query.eq("meter_id", meter_id as string);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Supabase Fehler: ${error.message}`);
+    }
+
+    // Berechne Statistiken
+    const stats = {
+      total_readings: data?.length || 0,
+      meters_count: new Set(data?.map((r: any) => r.meter_id)).size || 0,
+      avg_confidence: data
+        ? (
+            data.reduce((sum: number, r: any) => sum + (r.confidence_score || 0), 0) /
+            data.length
+          ).toFixed(2)
+        : 0,
+      meters_by_type: data?.reduce(
+        (acc: any, r: any) => {
+          acc[r.meter_type] = (acc[r.meter_type] || 0) + 1;
+          return acc;
+        },
+        {}
+      ),
+    };
+
+    res.json({
+      success: true,
+      data: stats,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error instanceof Error ? error.message : "Unbekannter Fehler",
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // Health Check
 app.get("/health", (req: Request, res: Response) => {
-  res.json({ status: "ok" });
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// 404 Handler
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    error: "Endpoint nicht gefunden",
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Server starten
 app.listen(PORT, () => {
   console.log(`🚀 Meter Reader Agent läuft auf Port ${PORT}`);
-  console.log(`📝 POST /api/meter-reading - Zählerstand erkennen`);
-  console.log(`📊 GET /api/readings - Alle Messwerte abrufen`);
-  console.log(`📊 GET /api/readings/:meter_id - Messwerte für Zähler`);
+  console.log(`\n📚 Verfügbare Endpoints:`);
+  console.log(`   POST   /api/meter-reading - Zählerstand erkennen`);
+  console.log(`   GET    /api/readings - Alle Messwerte abrufen`);
+  console.log(`   GET    /api/readings/:meter_id - Messwerte für Zähler`);
+  console.log(`   GET    /api/stats - Statistiken`);
+  console.log(`   GET    /health - Health Check`);
+  console.log(`\n✅ Bereit für Anfragen!\n`);
 });
+
+export {};

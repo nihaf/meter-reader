@@ -22,11 +22,11 @@
   "license": "MIT",
   "author": "Nils Haffke",
   "type": "commonjs",
-  "main": "meter-reader-agent-extended.ts",
+  "main": "meter-reader-agent.ts",
   "scripts": {
-    "dev": "ts-node meter-reader-agent-extended.ts",
+    "dev": "ts-node meter-reader-agent.ts",
     "build": "tsc",
-    "start": "node dist/meter-reader-agent-extended.js",
+    "start": "node dist/meter-reader-agent.js",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
