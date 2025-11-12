@@ -26,7 +26,7 @@
   "scripts": {
     "dev": "ts-node meter-reader-agent-extended.ts",
     "build": "tsc",
-    "start": "node meter-reader-agent.js",
+    "start": "node dist/meter-reader-agent-extended.js",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
