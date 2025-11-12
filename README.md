@@ -253,12 +253,13 @@ curl http://localhost:3000/health
 ## Zukunftserweiterungen
 
 - [ ] Batch-Upload mehrerer Bilder
+- [ ] Prüfe Bilder/Zählerstände auf Duplikat beim Upload 
 - [ ] OCR-Fallback wenn Claude nicht mit Bild zurechtkommt
 - [ ] Automatische Anomalieerkennung (z.B. Rückwärtsdrehung)
-- [ ] Export zu CSV/Excel
 - [ ] Webhooks für automatische Benachrichtigungen
 - [ ] Mobile App
 - [ ] Authentifizierung und Multi-Tenant-Support
+- [ ] Grafische Darstellung der Verbrauchswerte (Grafana?)
 
 ## Troubleshooting
 
