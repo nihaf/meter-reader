@@ -131,7 +131,7 @@ async function readMeterFromImage(
 
   // Claude Vision API aufrufen
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 1024,
     messages: [
       {
@@ -145,7 +145,6 @@ async function readMeterFromImage(
                 | "image/jpeg"
                 | "image/png"
                 | "image/gif"
-                | "image/heic"
                 | "image/webp",
               data: base64Image,
             },

@@ -67,7 +67,7 @@ async function readMeterFromImage(imagePath: string): Promise<MeterReading> {
 
   // Claude Vision API aufrufen
   const response = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 1024,
     messages: [
       {
@@ -81,7 +81,6 @@ async function readMeterFromImage(imagePath: string): Promise<MeterReading> {
                 | "image/jpeg"
                 | "image/png"
                 | "image/gif"
-                | "image/heic"
                 | "image/webp",
               data: base64Image,
             },
@@ -94,7 +93,7 @@ async function readMeterFromImage(imagePath: string): Promise<MeterReading> {
   "meter_id": "Die ID/Seriennummer des Zählers (falls sichtbar, sonst null)",
   "meter_type": "electricity" | "water" | "gas" | "unknown",
   "reading_value": Die Zahl die der Zähler anzeigt (nur Ziffern, als Nummer),
-  "unit": "kWh" | "m³" | "m³" | "unknown",
+  "unit": "kWh" | "m³" | "unknown",
   "confidence": "high" | "medium" | "low",
   "notes": "Zusätzliche Anmerkungen"
 }
