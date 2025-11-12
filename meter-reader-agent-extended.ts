@@ -124,6 +124,7 @@ async function readMeterFromImage(
     ".jpeg": "image/jpeg",
     ".png": "image/png",
     ".gif": "image/gif",
+    ".heic": "image/heic",
     ".webp": "image/webp",
   };
   const mimeType = mimeTypeMap[ext] || "image/jpeg";
@@ -144,6 +145,7 @@ async function readMeterFromImage(
                 | "image/jpeg"
                 | "image/png"
                 | "image/gif"
+                | "image/heic"
                 | "image/webp",
               data: base64Image,
             },
