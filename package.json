@@ -1,0 +1,46 @@
+{
+  "name": "meter-reader",
+  "version": "0.0.1",
+  "description": "The meter-reader offers API endpoints to POST images taken from electricity/water/gas meters. The image is analyzed by a Claude Vision agent and publishes the extracted values from the image into a Supabase PostgreSQL database.",
+  "keywords": [
+    "ai",
+    "agentic",
+    "vision",
+    "meter-reading",
+    "reader",
+    "persistence",
+    "supabase"
+  ],
+  "homepage": "https://github.com/nihaf/meter-reader#readme",
+  "bugs": {
+    "url": "https://github.com/nihaf/meter-reader/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/nihaf/meter-reader.git"
+  },
+  "license": "MIT",
+  "author": "Nils Haffke",
+  "type": "commonjs",
+  "main": "meter-reader-agent-extended.ts",
+  "scripts": {
+    "dev": "ts-node meter-reader-agent-extended.ts",
+    "build": "tsc",
+    "start": "node meter-reader-agent.js",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.18.2",
+    "multer": "^1.4.5-lts.1"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.10.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
