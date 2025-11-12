@@ -14,6 +14,9 @@ CREATE TABLE meter_readings (
   reading_value DECIMAL(10, 3) NOT NULL,
   unit unit_type,
   confidence VARCHAR(20),
+  confidence_score DECIMAL(3, 2),
+  processing_time_ms INTEGER,
+  image_size_bytes INTEGER,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -24,13 +27,16 @@ CREATE INDEX idx_created_at ON meter_readings(created_at DESC);
 
 -- Create view for newest reading per meter
 CREATE VIEW latest_meter_readings AS
-SELECT DISTINCT ON (meter_id) 
+SELECT DISTINCT ON (meter_id)
   id,
   meter_id,
   meter_type,
   reading_value,
   unit,
   confidence,
+  confidence_score,
+  processing_time_ms,
+  image_size_bytes,
   created_at
 FROM meter_readings
 ORDER BY meter_id, created_at DESC;
