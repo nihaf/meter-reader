@@ -7,7 +7,7 @@ import fs from "fs";
 import path from "path";
 import { MeterReading, ApiResponse, ProcessingMetrics } from "./types";
 
-// Konfiguration
+// Configuration
 const SUPABASE_URL: string = process.env.SUPABASE_URL || "";
 const SUPABASE_KEY: string = process.env.SUPABASE_KEY || "";
 const ANTHROPIC_API_KEY: string = process.env.ANTHROPIC_API_KEY || "";
@@ -26,19 +26,19 @@ if (!ANTHROPIC_API_KEY) {
   throw new Error("ANTHROPIC_API_KEY environment variable is required");
 }
 
-// Clients initialisieren
+// Initialize clients
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // Express Setup
 const app = express();
 
-// Multer Konfiguration mit Größenlimit
+// Multer configuration with size limit
 const upload = multer({
   dest: "uploads/",
   limits: { fileSize: MAX_FILE_SIZE },
   fileFilter: (req, file, cb) => {
-    // Nur Bilddateien akzeptieren
+    // Only accept image files
     if (!file.mimetype.startsWith("image/")) {
       cb(new Error("Nur Bilddateien sind erlaubt"));
     } else {
@@ -66,7 +66,7 @@ app.use((req: Request, res: Response, next) => {
   next();
 });
 
-// Fehlerbehandlung Middleware
+// Error handling middleware
 app.use((err: any, req: Request, res: Response, next: any) => {
   if (err instanceof multer.MulterError) {
     if (err.code === "LIMIT_FILE_SIZE") {
@@ -84,18 +84,18 @@ app.use((err: any, req: Request, res: Response, next: any) => {
   });
 });
 
-// Hauptfunktion: Zählerstand vom Bild erkennen
+// Main function: Read meter from image
 async function readMeterFromImage(
   imagePath: string
 ): Promise<{ reading: MeterReading; metrics: ProcessingMetrics }> {
   const startTime = Date.now();
 
-  // Bild in Base64 konvertieren
+  // Convert image to Base64
   const imageBuffer = fs.readFileSync(imagePath);
   const base64Image = imageBuffer.toString("base64");
   const imageSize = imageBuffer.length;
 
-  // MIME-Type basierend auf Dateiendung bestimmen
+  // Determine MIME type based on file extension
   const ext = path.extname(imagePath).toLowerCase();
   const mimeTypeMap: { [key: string]: string } = {
     ".jpg": "image/jpeg",
@@ -106,7 +106,7 @@ async function readMeterFromImage(
   };
   const mimeType: string = mimeTypeMap[ext] || "image/jpeg";
 
-  // Claude Vision API aufrufen
+  // Call Claude Vision API
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-5-20250929",
     max_tokens: 2048,
@@ -150,7 +150,7 @@ Wichtig:
 - Keine zusätzlichen Erklärungen oder Text
 - Nur das reine JSON-Objekt!
 
-Wichtig bei Stromzähler:
+Beachte bei Stromzählern:
 - Die letzte angezeigte Ziffer steht IMMER hinter dem Dezimalkomma. Der Zähler zeigt maximal eine Nachkommastelle an.
   Beispiele:
     * Anzeige "317818" → Zählerstand: 31781,8 kWh
@@ -163,13 +163,12 @@ Wichtig bei Stromzähler:
     * Es gibt keine zwei Nachkommastellen, sondern nur eine
   Gib mir den vollständigen Zählerstand im Format: XXXXX,X kWh
 
-Wichtig bei Gaszähler:
+Beachte bei Gaszählern:
 - Die letzten 3 angezeigte Ziffern steht IMMER hinter dem Dezimalkomma.
 - Kubikmeter und Liter nach dem Dezimalpunkt sind oft farblich voneinander getrennt
 - Die Einheit ist immer m³ (Kubikmeter)
 - Es gibt drei Nachkommastellen für die Liter
 - Gib mir den vollständigen Zählerstand im Format: XXXXX,XXX m³
-  
 `,
           },
         ],
@@ -211,7 +210,7 @@ Wichtig bei Gaszähler:
   return { reading: meterReading, metrics };
 }
 
-// Daten zu Supabase speichern
+// Save data to Supabase
 async function saveMeterReadingToSupabase(
   reading: MeterReading,
   metrics: ProcessingMetrics
@@ -242,7 +241,7 @@ async function saveMeterReadingToSupabase(
 
 // API Endpoints
 
-// POST /api/meter-reading - Bild hochladen und verarbeiten
+// POST /api/meter-reading - Upload and process image
 app.post(
   "/api/meter-reading",
   upload.single("image"),
@@ -257,13 +256,13 @@ app.post(
         return;
       }
 
-      // Zählerstand vom Bild erkennen
+      // Read meter from image
       const { reading, metrics } = await readMeterFromImage(req.file.path);
 
-      // Zu Supabase speichern
+      // Save to Supabase
       const supabaseData = await saveMeterReadingToSupabase(reading, metrics);
 
-      // Temporäre Datei löschen
+      // Delete temporary file
       fs.unlinkSync(req.file.path);
 
       res.json({
@@ -276,12 +275,12 @@ app.post(
         timestamp: new Date().toISOString(),
       } as ApiResponse);
     } catch (error) {
-      // Temporäre Datei bei Fehler löschen
+      // Delete temporary file on error
       if (req.file) {
         try {
           fs.unlinkSync(req.file.path);
         } catch (e) {
-          /* ignorieren */
+          /* ignore */
         }
       }
 
@@ -296,7 +295,7 @@ app.post(
   }
 );
 
-// GET /api/readings - Alle gespeicherten Messwerte abrufen
+// GET /api/readings - Fetch all saved readings
 app.get("/api/readings", async (req: Request, res: Response): Promise<void> => {
   try {
     const { meter_id, limit = 100, offset = 0 } = req.query;
@@ -333,7 +332,7 @@ app.get("/api/readings", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// GET /api/readings/:meter_id - Messwerte für spezifischen Zähler
+// GET /api/readings/:meter_id - Readings for specific meter
 app.get(
   "/api/readings/:meter_id",
   async (req: Request, res: Response): Promise<void> => {
@@ -367,41 +366,54 @@ app.get(
   }
 );
 
-// GET /api/stats - Aggregierte Statistiken
+// GET /api/stats - Aggregated statistics
 app.get("/api/stats", async (req: Request, res: Response): Promise<void> => {
   try {
     const { meter_id } = req.query;
 
-    let query = supabase.from("meter_readings").select("*");
+    let stats;
 
     if (meter_id) {
-      query = query.eq("meter_id", meter_id as string);
+      // Calculate statistics for specific meter
+      const { data, error } = await supabase
+        .from("meter_readings")
+        .select("*")
+        .eq("meter_id", meter_id as string);
+
+      if (error) {
+        throw new Error(`Supabase Fehler: ${error.message}`);
+      }
+
+      stats = {
+        total_readings: data?.length || 0,
+        meters_count: 1,
+        avg_confidence: data
+          ? (
+              data.reduce((sum: number, r: any) => sum + (r.confidence_score || 0), 0) /
+              data.length
+            ).toFixed(2)
+          : 0,
+        meters_by_type: data?.reduce(
+          (acc: any, r: any) => {
+            acc[r.meter_type] = (acc[r.meter_type] || 0) + 1;
+            return acc;
+          },
+          {}
+        ),
+      };
+    } else {
+      // Use database view for overall statistics
+      const { data, error } = await supabase
+        .from("meter_statistics")
+        .select("*")
+        .single();
+
+      if (error) {
+        throw new Error(`Supabase Fehler: ${error.message}`);
+      }
+
+      stats = data;
     }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Supabase Fehler: ${error.message}`);
-    }
-
-    // Berechne Statistiken
-    const stats = {
-      total_readings: data?.length || 0,
-      meters_count: new Set(data?.map((r: any) => r.meter_id)).size || 0,
-      avg_confidence: data
-        ? (
-            data.reduce((sum: number, r: any) => sum + (r.confidence_score || 0), 0) /
-            data.length
-          ).toFixed(2)
-        : 0,
-      meters_by_type: data?.reduce(
-        (acc: any, r: any) => {
-          acc[r.meter_type] = (acc[r.meter_type] || 0) + 1;
-          return acc;
-        },
-        {}
-      ),
-    };
 
     res.json({
       success: true,
@@ -431,7 +443,7 @@ app.use((req: Request, res: Response) => {
   });
 });
 
-// Server starten
+// Start server
 app.listen(PORT, () => {
   console.log(`🚀 Meter Reader Agent läuft auf Port ${PORT}`);
   console.log(`\n📚 Verfügbare Endpoints:`);

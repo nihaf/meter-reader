@@ -41,6 +41,22 @@ SELECT DISTINCT ON (meter_id)
 FROM meter_readings
 ORDER BY meter_id, created_at DESC;
 
+-- Create view for meter statistics
+CREATE VIEW meter_statistics AS
+SELECT
+  COUNT(*) as total_readings,
+  COUNT(DISTINCT meter_id) as meters_count,
+  ROUND(AVG(confidence_score)::numeric, 2) as avg_confidence,
+  (
+    SELECT jsonb_object_agg(meter_type, count)
+    FROM (
+      SELECT meter_type, COUNT(*) as count
+      FROM meter_readings
+      GROUP BY meter_type
+    ) type_counts
+  ) as meters_by_type
+FROM meter_readings;
+
 -- Activate Row Level Security (optional but recommended)
 ALTER TABLE meter_readings ENABLE ROW LEVEL SECURITY;
 
