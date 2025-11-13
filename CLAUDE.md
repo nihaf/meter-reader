@@ -120,21 +120,49 @@ The Meter Reader application is an AI-powered utility meter reading system that 
 
 ```
 meter-reader/
-├── CLAUDE.md                    # This file - project context
-├── PRD-meter-reader-webapp.md   # Product Requirements Document
-├── supabase_setup.sql           # Database schema and views
-├── meter-reader-agent.ts        # Main backend application
-├── types.ts                     # TypeScript type definitions
-├── test-api-key.ts             # API key testing script
-├── meter-upload.html           # Simple HTML upload testing interface
-├── package.json                # Node.js dependencies
-├── .env                        # Environment variables (not in git)
-└── uploads/                    # Temporary upload directory
+├── backend/                     # Backend API (Node.js/Express)
+│   ├── meter-reader-agent.ts   # Main backend application
+│   ├── types.ts                # TypeScript type definitions
+│   ├── test-api-key.ts        # API key testing script
+│   ├── meter-upload.html      # Simple HTML testing interface
+│   ├── package.json           # Backend dependencies
+│   ├── tsconfig.json          # TypeScript configuration
+│   ├── .env                   # Backend environment variables (not in git)
+│   ├── .env.example           # Environment template
+│   ├── .gitignore             # Backend git ignore
+│   ├── README.md              # Backend documentation
+│   ├── node_modules/          # Dependencies
+│   └── uploads/               # Temporary upload directory
+├── frontend/                   # Frontend web app (Next.js/React)
+│   ├── src/
+│   │   ├── app/               # Next.js app router pages
+│   │   │   ├── layout.tsx    # Root layout
+│   │   │   ├── page.tsx      # Home page
+│   │   │   └── globals.css   # Global styles
+│   │   ├── components/        # React components
+│   │   ├── lib/               # Utilities
+│   │   │   └── supabase/     # Supabase clients
+│   │   │       ├── client.ts # Browser client
+│   │   │       └── server.ts # Server client
+│   │   └── middleware.ts      # Auth middleware
+│   ├── public/                # Static assets
+│   ├── package.json           # Frontend dependencies
+│   ├── .env.example           # Environment template
+│   ├── next.config.js         # Next.js configuration
+│   ├── tailwind.config.ts     # Tailwind CSS configuration
+│   ├── tsconfig.json          # TypeScript configuration
+│   ├── .gitignore             # Frontend git ignore
+│   ├── README.md              # Frontend documentation
+│   └── node_modules/          # Dependencies
+├── CLAUDE.md                   # This file - project context
+├── PRD-meter-reader-webapp.md  # Product Requirements Document
+├── supabase_setup.sql          # Database schema and views
+└── README.md                   # Main project documentation
 ```
 
 ## Key Files
 
-### Backend
+### Backend (backend/)
 
 **`meter-reader-agent.ts`** - Main backend application
 - Express server on port 3000 (configurable)

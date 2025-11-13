@@ -50,6 +50,17 @@ const upload = multer({
 // Middleware
 app.use(express.json());
 
+// CORS middleware for frontend access
+app.use((req: Request, res: Response, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Logging Middleware
 app.use((req: Request, res: Response, next) => {
   const start = Date.now();
@@ -163,7 +174,7 @@ Wichtig:
 
   let parsedResponse;
   try {
-    parsedResponse = JSON.parse(responseText);
+    parsedResponse = JSON.parse(responseText.replace("```json", "").replace("```", ""));
   } catch (e) {
     throw new Error(
       `Ungültiges JSON-Response von Claude: ${responseText.substring(0, 200)}`

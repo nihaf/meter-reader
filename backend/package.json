@@ -1,7 +1,7 @@
 {
-  "name": "meter-reader",
+  "name": "meter-reader-backend",
   "version": "0.0.1",
-  "description": "The meter-reader offers API endpoints to POST images taken from electricity/water/gas meters. The image is analyzed by a Claude Vision agent and publishes the extracted values from the image into a Supabase PostgreSQL database.",
+  "description": "Backend API for meter-reader. Offers endpoints to POST images taken from electricity/water/gas meters. The image is analyzed by a Claude Vision agent and publishes the extracted values from the image into a Supabase PostgreSQL database.",
   "keywords": [
     "ai",
     "agentic",
@@ -27,7 +27,8 @@
     "dev": "ts-node meter-reader-agent.ts",
     "build": "tsc",
     "start": "node dist/meter-reader-agent.js",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:api": "ts-node test-api-key.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.0",
