@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { createApiClient } from '@/lib/api/client'
+import { createClient } from '@/lib/supabase/client'
+import Pagination from '@/components/Pagination'
 
 interface MeterReading {
   id: string
@@ -20,23 +21,46 @@ interface MeterReading {
 }
 
 export default function ReadingsPage() {
-  const { user, getAuthToken } = useAuth()
+  const { user } = useAuth()
+  const supabase = createClient()
   const [readings, setReadings] = useState<MeterReading[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+  const itemsPerPage = 50
 
   useEffect(() => {
     if (user) {
       fetchReadings()
     }
-  }, [user])
+  }, [user, currentPage])
 
   const fetchReadings = async () => {
     try {
-      const token = getAuthToken()
-      const apiClient = createApiClient(token)
-      const response = await apiClient.get('/api/readings')
-      setReadings(response.data.data || [])
+      setLoading(true)
+      const offset = (currentPage - 1) * itemsPerPage
+
+      // Fetch paginated readings
+      const { data: readingsData, error: readingsError } = await supabase
+        .from('meter_readings')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(offset, offset + itemsPerPage - 1)
+
+      if (readingsError) throw readingsError
+
+      setReadings(readingsData || [])
+
+      // Fetch total count for pagination
+      const { data: statsData, error: statsError } = await supabase
+        .from('meter_statistics')
+        .select('total_readings')
+        .single()
+
+      if (statsError) throw statsError
+
+      setTotalCount(statsData?.total_readings || 0)
     } catch (err) {
       setError('Failed to load readings')
       console.error('Error fetching readings:', err)
@@ -64,6 +88,8 @@ export default function ReadingsPage() {
     return 'text-red-600 bg-red-100'
   }
 
+  const totalPages = Math.ceil(totalCount / itemsPerPage)
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-88">
@@ -83,9 +109,6 @@ export default function ReadingsPage() {
           <p className="mt-8 text-gray-600">
             View all recorded meter readings
           </p>
-        </div>
-        <div className="text-sm text-gray-500">
-          Total: {readings.length} readings
         </div>
       </div>
 
@@ -151,7 +174,7 @@ export default function ReadingsPage() {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-300">
                 {readings.map((reading) => (
                   <tr key={reading.id} className="hover:bg-gray-50">
                     <td className="px-24 py-16 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -181,6 +204,14 @@ export default function ReadingsPage() {
               </tbody>
             </table>
           </div>
+
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
     </div>

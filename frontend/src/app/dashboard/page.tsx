@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { createApiClient } from '@/lib/api/client'
+import { createClient } from '@/lib/supabase/client'
 
 interface Statistics {
   total_readings: number
@@ -12,18 +12,29 @@ interface Statistics {
 }
 
 export default function DashboardPage() {
-  const { user, getAuthToken } = useAuth()
+  const { user } = useAuth()
   const [stats, setStats] = useState<Statistics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const supabase = createClient()
+
+  const getConfidenceColor = (confidence: number) => {
+    if (confidence >= 90) return 'text-green-600 bg-green-100'
+    if (confidence >= 70) return 'text-yellow-600 bg-yellow-100'
+    return 'text-red-600 bg-red-100'
+  }
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const token = getAuthToken()
-        const apiClient = createApiClient(token)
-        const response = await apiClient.get('/api/stats')
-        setStats(response.data.data)
+        const { data, error: queryError } = await supabase
+          .from('meter_statistics')
+          .select('*')
+          .single()
+
+        if (queryError) throw queryError
+
+        setStats(data as Statistics)
       } catch (err) {
         setError('Failed to load statistics')
         console.error('Error fetching stats:', err)
@@ -35,7 +46,7 @@ export default function DashboardPage() {
     if (user) {
       fetchStats()
     }
-  }, [user, getAuthToken])
+  }, [user, supabase])
 
   if (loading) {
     return (
@@ -146,7 +157,7 @@ export default function DashboardPage() {
                 <div className="ml-16 w-0 flex-1">
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Avg Confidence</dt>
-                    <dd className="text-lg font-semibold text-gray-900">{stats.avg_confidence}%</dd>
+                    <dd className="text-lg font-semibold text-gray-900">{stats.avg_confidence * 100}%</dd>
                   </dl>
                 </div>
               </div>

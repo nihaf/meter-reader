@@ -41,10 +41,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-88 px-16">
-      <div className="max-w-md w-full space-y-32">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="max-w-md w-full">
         <div>
-          <h2 className="mt-24 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Sign in to Meter Reader
           </h2>
           <p className="mt-8 text-center text-sm text-gray-600">
@@ -56,7 +56,7 @@ export default function LoginPage() {
         </div>
         <form className="mt-32 space-y-24" onSubmit={handleLogin}>
           {error && (
-            <div className="rounded-md bg-red-50 p-16">
+            <div className="rounded-md bg-red-50">
               <div className="flex">
                 <div className="ml-16">
                   <h3 className="text-sm font-medium text-red-800">{error}</h3>

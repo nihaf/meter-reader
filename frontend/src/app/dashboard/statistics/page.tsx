@@ -2,20 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { createApiClient } from '@/lib/api/client'
+import { createClient } from '@/lib/supabase/client'
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js'
-import { Line, Bar, Pie } from 'react-chartjs-2'
+import { Line } from 'react-chartjs-2'
 
 // Register ChartJS components
 ChartJS.register(
@@ -23,8 +21,6 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
-  BarElement,
-  ArcElement,
   Title,
   Tooltip,
   Legend
@@ -45,17 +41,10 @@ interface MeterReading {
   updated_at: string
 }
 
-interface Statistics {
-  total_readings: number
-  meters_count: number
-  avg_confidence: number
-  meters_by_type: Record<string, number>
-}
-
 export default function StatisticsPage() {
-  const { user, getAuthToken } = useAuth()
-  const [readings, setReadings] = useState<MeterReading[]>([])
-  const [stats, setStats] = useState<Statistics | null>(null)
+  const { user } = useAuth()
+  const supabase = createClient()
+  const [readingsByMeter, setReadingsByMeter] = useState<Record<string, MeterReading[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -67,16 +56,25 @@ export default function StatisticsPage() {
 
   const fetchData = async () => {
     try {
-      const token = getAuthToken()
-      const apiClient = createApiClient(token)
+      // Fetch all readings for the user (up to 10000)
+      const { data: allReadings, error: readingsError } = await supabase
+        .from('meter_readings')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(10000)
 
-      const [readingsRes, statsRes] = await Promise.all([
-        apiClient.get('/api/readings'),
-        apiClient.get('/api/stats'),
-      ])
+      if (readingsError) throw readingsError
 
-      setReadings(readingsRes.data.data || [])
-      setStats(statsRes.data.data)
+      // Group readings by meter_id
+      const groupedReadings = (allReadings || []).reduce((acc: Record<string, MeterReading[]>, reading: MeterReading) => {
+        if (!acc[reading.meter_id]) {
+          acc[reading.meter_id] = []
+        }
+        acc[reading.meter_id].push(reading)
+        return acc
+      }, {})
+
+      setReadingsByMeter(groupedReadings)
     } catch (err) {
       setError('Failed to load statistics')
       console.error('Error fetching data:', err)
@@ -85,100 +83,28 @@ export default function StatisticsPage() {
     }
   }
 
-  // Prepare chart data
-  const prepareTimeSeriesData = () => {
+  // Prepare chart data for a specific meter
+  const prepareTimeSeriesDataForMeter = (meterId: string, readings: MeterReading[]) => {
     const sortedReadings = [...readings].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
 
     const labels = sortedReadings.map((r) =>
-      new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     )
 
-    const datasets = Object.entries(
-      sortedReadings.reduce((acc, reading) => {
-        if (!acc[reading.meter_id]) {
-          acc[reading.meter_id] = []
-        }
-        acc[reading.meter_id].push(reading.reading_value)
-        return acc
-      }, {} as Record<string, number[]>)
-    ).map(([meterId, values], index) => ({
-      label: meterId,
-      data: values,
-      borderColor: `hsl(${index * 60}, 70%, 50%)`,
-      backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.1)`,
-      tension: 0.3,
-    }))
-
-    return { labels, datasets }
-  }
-
-  const prepareMeterTypeData = () => {
-    if (!stats?.meters_by_type) return null
+    const data = sortedReadings.map(r => r.reading_value)
 
     return {
-      labels: Object.keys(stats.meters_by_type).map((type) => type.charAt(0).toUpperCase() + type.slice(1)),
-      datasets: [
-        {
-          label: 'Readings by Meter Type',
-          data: Object.values(stats.meters_by_type),
-          backgroundColor: [
-            'rgba(59, 130, 246, 0.8)',
-            'rgba(16, 185, 129, 0.8)',
-            'rgba(245, 158, 11, 0.8)',
-            'rgba(239, 68, 68, 0.8)',
-            'rgba(139, 92, 246, 0.8)',
-          ],
-          borderColor: [
-            'rgba(59, 130, 246, 1)',
-            'rgba(16, 185, 129, 1)',
-            'rgba(245, 158, 11, 1)',
-            'rgba(239, 68, 68, 1)',
-            'rgba(139, 92, 246, 1)',
-          ],
-          borderWidth: 1,
-        },
-      ],
-    }
-  }
-
-  const prepareConfidenceData = () => {
-    const confidenceRanges = {
-      '90-100%': 0,
-      '70-89%': 0,
-      '50-69%': 0,
-      'Below 50%': 0,
-    }
-
-    readings.forEach((reading) => {
-      if (reading.confidence_score >= 90) confidenceRanges['90-100%']++
-      else if (reading.confidence_score >= 70) confidenceRanges['70-89%']++
-      else if (reading.confidence_score >= 50) confidenceRanges['50-69%']++
-      else confidenceRanges['Below 50%']++
-    })
-
-    return {
-      labels: Object.keys(confidenceRanges),
-      datasets: [
-        {
-          label: 'Confidence Score Distribution',
-          data: Object.values(confidenceRanges),
-          backgroundColor: [
-            'rgba(16, 185, 129, 0.8)',
-            'rgba(245, 158, 11, 0.8)',
-            'rgba(239, 68, 68, 0.8)',
-            'rgba(107, 114, 128, 0.8)',
-          ],
-          borderColor: [
-            'rgba(16, 185, 129, 1)',
-            'rgba(245, 158, 11, 1)',
-            'rgba(239, 68, 68, 1)',
-            'rgba(107, 114, 128, 1)',
-          ],
-          borderWidth: 1,
-        },
-      ],
+      labels,
+      datasets: [{
+        label: `${meterId} (${readings[0]?.unit || ''})`,
+        data,
+        borderColor: 'rgb(59, 130, 246)',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.3,
+        fill: true,
+      }]
     }
   }
 
@@ -193,9 +119,8 @@ export default function StatisticsPage() {
     )
   }
 
-  const timeSeriesData = prepareTimeSeriesData()
-  const meterTypeData = prepareMeterTypeData()
-  const confidenceData = prepareConfidenceData()
+  const meterIds = Object.keys(readingsByMeter)
+  const hasData = meterIds.length > 0
 
   return (
     <div className="space-y-24">
@@ -216,8 +141,8 @@ export default function StatisticsPage() {
         </div>
       )}
 
-      {readings.length === 0 ? (
-        <div className="text-center py-88 bg-white rounded-lg shadow">
+      {!hasData ? (
+        <div className="text-center bg-white rounded-lg shadow">
           <svg
             className="mx-auto h-48 w-48 text-gray-400"
             fill="none"
@@ -235,84 +160,66 @@ export default function StatisticsPage() {
           <p className="mt-4 text-sm text-gray-500">Upload some meter readings to see statistics.</p>
         </div>
       ) : (
-        <>
-          {/* Reading Trends Over Time */}
-          <div className="bg-white p-24 rounded-lg shadow">
-            <h2 className="text-xl font-semibold text-gray-900 mb-16">Reading Trends Over Time</h2>
-            <div className="h-96">
-              <Line
-                data={timeSeriesData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    },
-                    title: {
-                      display: false,
-                    },
-                  },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                    },
-                  },
-                }}
-              />
-            </div>
-          </div>
+        <div className="space-y-24">
+          {meterIds.map((meterId) => {
+            const readings = readingsByMeter[meterId]
+            const timeSeriesData = prepareTimeSeriesDataForMeter(meterId, readings)
+            const meterType = readings[0]?.meter_type || 'Unknown'
+            const totalReadings = readings.length
+            const avgConfidence = (readings.reduce((sum, r) => sum + r.confidence_score, 0) / readings.length).toFixed(1)
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-24">
-            {/* Meter Types Distribution */}
-            {meterTypeData && (
-              <div className="bg-white p-24 rounded-lg shadow">
-                <h2 className="text-xl font-semibold text-gray-900 mb-16">Meter Types Distribution</h2>
-                <div className="h-80 flex items-center justify-center">
-                  <Pie
-                    data={meterTypeData}
+            return (
+              <div key={meterId} className="bg-white p-24 rounded-lg shadow">
+                <div className="flex justify-between items-start mb-16">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Meter: {meterId}
+                    </h2>
+                    <div className="mt-8 flex gap-16 text-sm text-gray-600">
+                      <span className="px-8 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
+                        {meterType}
+                      </span>
+                      <span>{totalReadings} readings</span>
+                      <span>Avg. Confidence: {avgConfidence}%</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="h-96">
+                  <Line
+                    data={timeSeriesData}
                     options={{
                       responsive: true,
                       maintainAspectRatio: false,
                       plugins: {
                         legend: {
-                          position: 'bottom',
+                          position: 'top',
                         },
+                        title: {
+                          display: false,
+                        },
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: false,
+                          title: {
+                            display: true,
+                            text: readings[0]?.unit || 'Value'
+                          }
+                        },
+                        x: {
+                          title: {
+                            display: true,
+                            text: 'Date'
+                          }
+                        }
                       },
                     }}
                   />
                 </div>
               </div>
-            )}
-
-            {/* Confidence Score Distribution */}
-            <div className="bg-white p-24 rounded-lg shadow">
-              <h2 className="text-xl font-semibold text-gray-900 mb-16">Confidence Score Distribution</h2>
-              <div className="h-80">
-                <Bar
-                  data={confidenceData}
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: {
-                        display: false,
-                      },
-                    },
-                    scales: {
-                      y: {
-                        beginAtZero: true,
-                        ticks: {
-                          stepSize: 1,
-                        },
-                      },
-                    },
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-        </>
+            )
+          })}
+        </div>
       )}
     </div>
   )
