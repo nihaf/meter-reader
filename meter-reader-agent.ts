@@ -146,30 +146,11 @@ Wichtig:
 - Setze confidence basierend auf Bildqualität, Lesbarkeit und Deutlichkeit
 - confidence_score sollte zwischen 0.0 (sehr unsicher) und 1.0 (sehr sicher) liegen
 - Antworte NUR mit reinem JSON-Objekt
-- KEINE Markdown-Formatierung (keine \`\`\`json Blöcke)
+- Nur das reine JSON-Objekt liefern!
+- KEINE Markdown-Formatierung
 - Keine zusätzlichen Erklärungen oder Text
-- Nur das reine JSON-Objekt!
-
-Beachte bei Stromzählern:
-- Die letzte angezeigte Ziffer steht IMMER hinter dem Dezimalkomma. Der Zähler zeigt maximal eine Nachkommastelle an.
-  Beispiele:
-    * Anzeige "317818" → Zählerstand: 31781,8 kWh
-    * Anzeige "45041" → Zählerstand: 4504,1 kWh
-    * Anzeige "100025" → Zählerstand: 10002,5 kWh
-  Hinweise:
-    * Der Dezimalpunkt ist oft sehr klein und schwer erkennbar auf dem Display
-    * Ignoriere den Punkt nicht, auch wenn er kaum sichtbar ist
-    * Die Einheit ist immer kWh (Kilowattstunden)
-    * Es gibt keine zwei Nachkommastellen, sondern nur eine
-  Gib mir den vollständigen Zählerstand im Format: XXXXX,X kWh
-
-Beachte bei Gaszählern:
-- Die letzten 3 angezeigte Ziffern steht IMMER hinter dem Dezimalkomma.
-- Kubikmeter und Liter nach dem Dezimalpunkt sind oft farblich voneinander getrennt
-- Die Einheit ist immer m³ (Kubikmeter)
-- Es gibt drei Nachkommastellen für die Liter
-- Gib mir den vollständigen Zählerstand im Format: XXXXX,XXX m³
-`,
+- Beachte bei Stromzählern: Die letzte angezeigte Ziffer steht IMMER hinter dem Dezimalkomma.
+- Beachte bei Gaszählern: Die letzten DREI Ziffern (oft rot markiert) stehen hinter dem Dezimalkomma. Der Zähler zeigt drei Nachkommastellen an.`
           },
         ],
       },
