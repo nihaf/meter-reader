@@ -9,6 +9,7 @@ CREATE TYPE unit_type AS ENUM (
 -- Create tables for meter counters
 CREATE TABLE meter_readings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   meter_id VARCHAR(255) NOT NULL,
   meter_type VARCHAR(50) NOT NULL,
   reading_value DECIMAL(10, 3) NOT NULL,
@@ -21,14 +22,16 @@ CREATE TABLE meter_readings (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Create indexes for faster queries by meter_id and created_at
+-- Create indexes for faster queries by meter_id, user_id, and created_at
 CREATE INDEX idx_meter_id ON meter_readings(meter_id);
+CREATE INDEX idx_user_id ON meter_readings(user_id);
 CREATE INDEX idx_created_at ON meter_readings(created_at DESC);
 
 -- Create view for newest reading per meter
 CREATE VIEW latest_meter_readings AS
 SELECT DISTINCT ON (meter_id)
   id,
+  user_id,
   meter_id,
   meter_type,
   reading_value,
@@ -60,10 +63,18 @@ FROM meter_readings;
 -- Activate Row Level Security (optional but recommended)
 ALTER TABLE meter_readings ENABLE ROW LEVEL SECURITY;
 
--- Create policy for public read access
-CREATE POLICY "Allow read access to all" ON meter_readings
-  FOR SELECT USING (true);
+-- Create policy for user-specific read access
+CREATE POLICY "Users can view their own readings" ON meter_readings
+  FOR SELECT USING (auth.uid() = user_id);
 
--- Create policy for Insert (optional - better authentication in production)
-CREATE POLICY "Allow insert for authenticated users" ON meter_readings
-  FOR INSERT WITH CHECK (true);
+-- Create policy for user-specific insert
+CREATE POLICY "Users can insert their own readings" ON meter_readings
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Create policy for user-specific updates
+CREATE POLICY "Users can update their own readings" ON meter_readings
+  FOR UPDATE USING (auth.uid() = user_id);
+
+-- Create policy for user-specific deletes
+CREATE POLICY "Users can delete their own readings" ON meter_readings
+  FOR DELETE USING (auth.uid() = user_id);

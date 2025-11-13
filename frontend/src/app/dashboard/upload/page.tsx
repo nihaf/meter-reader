@@ -18,7 +18,7 @@ interface UploadResponse {
 }
 
 export default function UploadPage() {
-  const { user } = useAuth()
+  const { user, getAuthToken } = useAuth()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [preview, setPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -56,12 +56,15 @@ export default function UploadPage() {
       formData.append('image', selectedFile)
 
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+      const token = getAuthToken()
+
       const response = await axios.post<UploadResponse>(
         `${apiUrl}/api/meter-reading`,
         formData,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
         }
       )

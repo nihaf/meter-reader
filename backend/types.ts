@@ -1,4 +1,5 @@
 // Types for Meter Reader Application
+import { Request } from "express";
 
 export interface MeterReading {
   meter_id: string;
@@ -20,4 +21,13 @@ export interface ProcessingMetrics {
   processing_time_ms: number;
   image_size_bytes: number;
   confidence_score: number;
+}
+
+// Extended Request interface to include authenticated user
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email?: string;
+  };
+  token?: string;
 }

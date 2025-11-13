@@ -1,35 +1,42 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { createApiClient } from '@/lib/api/client'
 
 interface MeterReading {
-  id: number
+  id: string
+  user_id: string
   meter_id: string
   meter_type: string
   reading_value: number
   unit: string
-  reading_date: string
+  confidence: string
   confidence_score: number
-  image_url: string
+  processing_time_ms: number
+  image_size_bytes: number
   created_at: string
+  updated_at: string
 }
 
 export default function ReadingsPage() {
+  const { user, getAuthToken } = useAuth()
   const [readings, setReadings] = useState<MeterReading[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchReadings()
-  }, [])
+    if (user) {
+      fetchReadings()
+    }
+  }, [user])
 
   const fetchReadings = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-      const response = await axios.get<{ readings: MeterReading[] }>(`${apiUrl}/api/readings`)
-      setReadings(response.data.readings)
+      const token = getAuthToken()
+      const apiClient = createApiClient(token)
+      const response = await apiClient.get('/api/readings')
+      setReadings(response.data.data || [])
     } catch (err) {
       setError('Failed to load readings')
       console.error('Error fetching readings:', err)
@@ -39,7 +46,9 @@ export default function ReadingsPage() {
   }
 
   const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A'
     const date = new Date(dateString)
+    if (isNaN(date.getTime())) return 'Invalid Date'
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'short',
@@ -162,44 +171,15 @@ export default function ReadingsPage() {
                       </span>
                     </td>
                     <td className="px-24 py-16 whitespace-nowrap text-sm text-gray-500">
-                      {formatDate(reading.reading_date)}
+                      {formatDate(reading.created_at)}
                     </td>
                     <td className="px-24 py-16 whitespace-nowrap text-sm text-gray-500">
-                      <button
-                        onClick={() => setSelectedImage(reading.image_url)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        View
-                      </button>
+                      <span className="text-gray-400">-</span>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-      )}
-
-      {/* Image Modal */}
-      {selectedImage && (
-        <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-16"
-          onClick={() => setSelectedImage(null)}
-        >
-          <div className="relative max-w-4xl max-h-full" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setSelectedImage(null)}
-              className="absolute -top-8 -right-8 bg-white rounded-full p-8 shadow-lg hover:bg-gray-100"
-            >
-              <svg className="h-24 w-24 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-            <img
-              src={selectedImage}
-              alt="Meter reading"
-              className="max-w-full max-h-screen rounded-lg shadow-2xl"
-            />
           </div>
         </div>
       )}

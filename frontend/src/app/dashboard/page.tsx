@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
-import axios from 'axios'
+import { createApiClient } from '@/lib/api/client'
 
 interface Statistics {
   total_readings: number
@@ -12,7 +12,7 @@ interface Statistics {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth()
+  const { user, getAuthToken } = useAuth()
   const [stats, setStats] = useState<Statistics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -20,9 +20,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
-        const response = await axios.get(`${apiUrl}/api/stats`)
-        setStats(response.data)
+        const token = getAuthToken()
+        const apiClient = createApiClient(token)
+        const response = await apiClient.get('/api/stats')
+        setStats(response.data.data)
       } catch (err) {
         setError('Failed to load statistics')
         console.error('Error fetching stats:', err)
@@ -31,8 +32,10 @@ export default function DashboardPage() {
       }
     }
 
-    fetchStats()
-  }, [])
+    if (user) {
+      fetchStats()
+    }
+  }, [user, getAuthToken])
 
   if (loading) {
     return (

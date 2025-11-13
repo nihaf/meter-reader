@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { createApiClient } from '@/lib/api/client'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,13 +31,18 @@ ChartJS.register(
 )
 
 interface MeterReading {
-  id: number
+  id: string
+  user_id: string
   meter_id: string
   meter_type: string
   reading_value: number
   unit: string
-  reading_date: string
+  confidence: string
   confidence_score: number
+  processing_time_ms: number
+  image_size_bytes: number
+  created_at: string
+  updated_at: string
 }
 
 interface Statistics {
@@ -47,24 +53,30 @@ interface Statistics {
 }
 
 export default function StatisticsPage() {
+  const { user, getAuthToken } = useAuth()
   const [readings, setReadings] = useState<MeterReading[]>([])
   const [stats, setStats] = useState<Statistics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    if (user) {
+      fetchData()
+    }
+  }, [user])
 
   const fetchData = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+      const token = getAuthToken()
+      const apiClient = createApiClient(token)
+
       const [readingsRes, statsRes] = await Promise.all([
-        axios.get<{ readings: MeterReading[] }>(`${apiUrl}/api/readings`),
-        axios.get<Statistics>(`${apiUrl}/api/stats`),
+        apiClient.get('/api/readings'),
+        apiClient.get('/api/stats'),
       ])
-      setReadings(readingsRes.data.readings)
-      setStats(statsRes.data)
+
+      setReadings(readingsRes.data.data || [])
+      setStats(statsRes.data.data)
     } catch (err) {
       setError('Failed to load statistics')
       console.error('Error fetching data:', err)
@@ -76,11 +88,11 @@ export default function StatisticsPage() {
   // Prepare chart data
   const prepareTimeSeriesData = () => {
     const sortedReadings = [...readings].sort(
-      (a, b) => new Date(a.reading_date).getTime() - new Date(b.reading_date).getTime()
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
 
     const labels = sortedReadings.map((r) =>
-      new Date(r.reading_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
     )
 
     const datasets = Object.entries(

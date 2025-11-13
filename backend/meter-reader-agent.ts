@@ -5,7 +5,7 @@ import express, { Request, Response } from "express";
 import multer from "multer";
 import fs from "fs";
 import path from "path";
-import { MeterReading, ApiResponse, ProcessingMetrics } from "./types";
+import { MeterReading, ApiResponse, ProcessingMetrics, AuthenticatedRequest } from "./types";
 
 // Configuration
 const SUPABASE_URL: string = process.env.SUPABASE_URL || "";
@@ -29,6 +29,17 @@ if (!ANTHROPIC_API_KEY) {
 // Initialize clients
 const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Create authenticated Supabase client with user's JWT token
+function getAuthenticatedSupabaseClient(token: string) {
+  return createClient(SUPABASE_URL, SUPABASE_KEY, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  });
+}
 
 // Express Setup
 const app = express();
@@ -54,7 +65,7 @@ app.use(express.json());
 app.use((req: Request, res: Response, next) => {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
@@ -76,6 +87,65 @@ app.use((req: Request, res: Response, next) => {
 
   next();
 });
+
+// Authentication Middleware
+async function authenticateUser(
+  req: Request,
+  res: Response,
+  next: any
+): Promise<void> {
+  // Skip authentication for health check endpoint
+  if (req.path === "/health") {
+    return next();
+  }
+
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      res.status(401).json({
+        success: false,
+        error: "Keine Authentifizierung. Bitte melden Sie sich an.",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const token = authHeader.substring(7); // Remove "Bearer " prefix
+
+    // Verify token with Supabase
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    if (error || !user) {
+      res.status(401).json({
+        success: false,
+        error: "Ungültiges oder abgelaufenes Token",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
+    // Attach user and token to request object
+    const authenticatedReq = req as AuthenticatedRequest;
+    authenticatedReq.user = {
+      id: user.id,
+      email: user.email,
+    };
+    authenticatedReq.token = token;
+
+    next();
+  } catch (error) {
+    console.error("Authentifizierungsfehler:", error);
+    res.status(401).json({
+      success: false,
+      error: "Authentifizierung fehlgeschlagen",
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// Apply authentication middleware to all routes except health check
+app.use(authenticateUser);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: any) => {
@@ -205,12 +275,17 @@ Wichtig:
 // Save data to Supabase
 async function saveMeterReadingToSupabase(
   reading: MeterReading,
-  metrics: ProcessingMetrics
+  metrics: ProcessingMetrics,
+  userId: string,
+  token: string
 ) {
-  const { data, error } = await supabase
+  const authenticatedSupabase = getAuthenticatedSupabaseClient(token);
+
+  const { data, error } = await authenticatedSupabase
     .from("meter_readings")
     .insert([
       {
+        user_id: userId,
         meter_id: reading.meter_id,
         meter_type: reading.meter_type,
         reading_value: reading.reading_value,
@@ -239,6 +314,17 @@ app.post(
   upload.single("image"),
   async (req: Request, res: Response): Promise<void> => {
     try {
+      const authenticatedReq = req as AuthenticatedRequest;
+
+      if (!authenticatedReq.user) {
+        res.status(401).json({
+          success: false,
+          error: "Benutzer nicht authentifiziert",
+          timestamp: new Date().toISOString(),
+        } as ApiResponse);
+        return;
+      }
+
       if (!req.file) {
         res.status(400).json({
           success: false,
@@ -251,8 +337,13 @@ app.post(
       // Read meter from image
       const { reading, metrics } = await readMeterFromImage(req.file.path);
 
-      // Save to Supabase
-      const supabaseData = await saveMeterReadingToSupabase(reading, metrics);
+      // Save to Supabase with user_id and token
+      const supabaseData = await saveMeterReadingToSupabase(
+        reading,
+        metrics,
+        authenticatedReq.user.id,
+        authenticatedReq.token!
+      );
 
       // Delete temporary file
       fs.unlinkSync(req.file.path);
@@ -287,12 +378,25 @@ app.post(
   }
 );
 
-// GET /api/readings - Fetch all saved readings
+// GET /api/readings - Fetch all saved readings for authenticated user
 app.get("/api/readings", async (req: Request, res: Response): Promise<void> => {
   try {
+    const authenticatedReq = req as AuthenticatedRequest;
+
+    if (!authenticatedReq.user || !authenticatedReq.token) {
+      res.status(401).json({
+        success: false,
+        error: "Benutzer nicht authentifiziert",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     const { meter_id, limit = 100, offset = 0 } = req.query;
 
-    let query = supabase
+    const authenticatedSupabase = getAuthenticatedSupabaseClient(authenticatedReq.token);
+
+    let query = authenticatedSupabase
       .from("meter_readings")
       .select("*")
       .order("created_at", { ascending: false });
@@ -324,15 +428,28 @@ app.get("/api/readings", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-// GET /api/readings/:meter_id - Readings for specific meter
+// GET /api/readings/:meter_id - Readings for specific meter (user-specific)
 app.get(
   "/api/readings/:meter_id",
   async (req: Request, res: Response): Promise<void> => {
     try {
+      const authenticatedReq = req as AuthenticatedRequest;
+
+      if (!authenticatedReq.user || !authenticatedReq.token) {
+        res.status(401).json({
+          success: false,
+          error: "Benutzer nicht authentifiziert",
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
+
       const { meter_id } = req.params;
       const { limit = 100, offset = 0 } = req.query;
 
-      const { data, error } = await supabase
+      const authenticatedSupabase = getAuthenticatedSupabaseClient(authenticatedReq.token);
+
+      const { data, error } = await authenticatedSupabase
         .from("meter_readings")
         .select("*")
         .eq("meter_id", meter_id)
@@ -358,58 +475,35 @@ app.get(
   }
 );
 
-// GET /api/stats - Aggregated statistics
+// GET /api/stats - Aggregated statistics for authenticated user
 app.get("/api/stats", async (req: Request, res: Response): Promise<void> => {
   try {
-    const { meter_id } = req.query;
+    const authenticatedReq = req as AuthenticatedRequest;
 
-    let stats;
+    if (!authenticatedReq.user || !authenticatedReq.token) {
+      res.status(401).json({
+        success: false,
+        error: "Benutzer nicht authentifiziert",
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
 
-    if (meter_id) {
-      // Calculate statistics for specific meter
-      const { data, error } = await supabase
-        .from("meter_readings")
-        .select("*")
-        .eq("meter_id", meter_id as string);
+    const authenticatedSupabase = getAuthenticatedSupabaseClient(authenticatedReq.token);
 
-      if (error) {
-        throw new Error(`Supabase Fehler: ${error.message}`);
-      }
+    let query = authenticatedSupabase
+      .from("meter_statistics")
+      .select("*");
 
-      stats = {
-        total_readings: data?.length || 0,
-        meters_count: 1,
-        avg_confidence: data
-          ? (
-              data.reduce((sum: number, r: any) => sum + (r.confidence_score || 0), 0) /
-              data.length
-            ).toFixed(2)
-          : 0,
-        meters_by_type: data?.reduce(
-          (acc: any, r: any) => {
-            acc[r.meter_type] = (acc[r.meter_type] || 0) + 1;
-            return acc;
-          },
-          {}
-        ),
-      };
-    } else {
-      // Use database view for overall statistics
-      const { data, error } = await supabase
-        .from("meter_statistics")
-        .select("*")
-        .single();
+    const { data, error } = await query;
 
-      if (error) {
-        throw new Error(`Supabase Fehler: ${error.message}`);
-      }
-
-      stats = data;
+    if (error) {
+      throw new Error(`Supabase Fehler: ${error.message}`);
     }
 
     res.json({
       success: true,
-      data: stats,
+      data: data[0],
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
