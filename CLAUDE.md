@@ -61,11 +61,183 @@ The Meter Reader application is an AI-powered utility meter reading system that 
 
 ## Architecture
 
-TODO
+The Meter Reader application follows a modern **serverless Next.js architecture** with **Supabase** as the backend-as-a-service platform:
+
+### Architecture Pattern: JAMstack + BaaS
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      CLIENT (Browser)                   │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │  Next.js 15 Frontend (React 19 + Tailwind CSS)   │   │
+│  │  - Server Components (RSC)                       │   │
+│  │  - Client Components (Hydration)                 │   │
+│  │  - Middleware (Auth Check)                       │   │
+│  └──────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           │ HTTPS
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│               NEXT.JS SERVER (Vercel/Node.js)           │
+│  ┌─────────────────┐  ┌──────────────────┐              │
+│  │ Server Actions  │  │  API Routes      │              │
+│  │ - auth.ts       │  │  (Future)        │              │
+│  │ - claude.ts     │  │                  │              │
+│  └─────────────────┘  └──────────────────┘              │
+└─────────────────────────────────────────────────────────┘
+           │                           │
+           │ Supabase Client           │ Anthropic SDK
+           ▼                           ▼
+┌──────────────────────┐    ┌─────────────────────┐
+│  SUPABASE (BaaS)     │    │  ANTHROPIC API      │
+│  ┌────────────────┐  │    │  ┌───────────────┐  │
+│  │ PostgreSQL     │  │    │  │ Claude Vision │  │
+│  │ - RLS Policies │  │    │  │ API (Sonnet   │  │
+│  │ - Views        │  │    │  │ 4.5)          │  │
+│  │ - Indexes      │  │    │  └───────────────┘  │
+│  └────────────────┘  │    └─────────────────────┘
+│  ┌────────────────┐  │
+│  │ Auth Service   │  │
+│  │ - JWT Tokens   │  │
+│  │ - Sessions     │  │
+│  └────────────────┘  │
+└──────────────────────┘
+```
+
+### Key Architectural Decisions
+
+1. **Next.js App Router (React Server Components)**
+   - Server-side rendering for initial page load
+   - Client-side hydration for interactivity
+   - Server Actions for mutations (image upload, data saving)
+   - Middleware for authentication checks
+
+2. **Supabase as Backend-as-a-Service**
+   - PostgreSQL database with Row Level Security (RLS)
+   - Built-in authentication (JWT-based)
+   - Real-time capabilities (future)
+   - Direct client-to-database communication (bypasses traditional API layer)
+
+3. **Claude Vision API Integration**
+   - Server Action (`claude.ts`) calls Anthropic API
+   - Base64 image encoding for transmission
+   - Structured JSON response parsing
+   - Error handling and retry logic
+
+4. **Authentication Flow**
+   - Supabase Auth with JWT tokens
+   - Middleware intercepts all requests to check session
+   - Protected routes via `ProtectedRoute` component
+   - Server-side user context via cookies
+
+5. **Data Flow**
+   ```
+   User uploads image → Client Component (upload/page.tsx)
+   → Server Action (analyzeMeterImage) → Claude Vision API
+   → Parse JSON response → Return to client
+   → User reviews/corrects → Client saves to Supabase
+   → Database triggers RLS policies → Success/Error response
+   ```
+
+### Security Architecture
+
+- **Row Level Security (RLS)**: All database queries filtered by `user_id`
+- **JWT Tokens**: Managed by Supabase Auth, stored in HTTP-only cookies
+- **Middleware**: Session validation on every request
+- **Environment Variables**: API keys never exposed to client
+- **CORS**: Next.js handles CORS automatically
+- **File Size Limits**: 5MB enforced via Next.js config
 
 ## Project Structure
 
-TODO
+```
+meter-reader/
+├── .claude/                    # Claude Code configuration
+├── .next/                      # Next.js build output (generated)
+├── database/                   # Database schemas and migrations
+│   └── supabase_setup.sql     # PostgreSQL schema, views, RLS policies
+├── deploy/                     # Deployment configuration
+│   ├── Dockerfile             # Container configuration
+│   └── docker-compose.yaml    # Docker services orchestration
+├── node_modules/              # Dependencies (generated)
+├── public/                     # Static assets (currently empty)
+├── src/                        # Application source code
+│   ├── app/                   # Next.js App Router pages
+│   │   ├── dashboard/         # Protected dashboard area
+│   │   │   ├── layout.tsx    # Dashboard layout with navigation
+│   │   │   ├── page.tsx      # Dashboard home (statistics overview)
+│   │   │   ├── readings/     # Reading history
+│   │   │   │   └── page.tsx  # Table with all readings
+│   │   │   ├── statistics/   # Statistics page
+│   │   │   │   └── page.tsx  # Charts and visualizations
+│   │   │   └── upload/       # Image upload
+│   │   │       └── page.tsx  # Upload form + Claude analysis + save
+│   │   ├── login/            # Authentication
+│   │   │   └── page.tsx      # Login page
+│   │   ├── signup/           # Registration
+│   │   │   └── page.tsx      # Signup page
+│   │   ├── layout.tsx        # Root layout (wraps entire app)
+│   │   ├── page.tsx          # Landing page (public)
+│   │   └── globals.css       # Global Tailwind CSS styles
+│   ├── components/           # Reusable React components
+│   │   ├── DashboardNav.tsx  # Dashboard navigation sidebar
+│   │   ├── Pagination.tsx    # Pagination component for tables
+│   │   └── ProtectedRoute.tsx # HOC for authentication checks
+│   ├── lib/                  # Business logic and utilities
+│   │   ├── actions/          # Next.js Server Actions
+│   │   │   ├── auth.ts       # Authentication actions (logout, getUser)
+│   │   │   └── claude.ts     # Claude Vision API integration
+│   │   ├── context/          # React Context providers
+│   │   │   └── AuthContext.tsx # Authentication state management
+│   │   ├── hooks/            # Custom React hooks
+│   │   │   └── useAuth.ts    # Hook for accessing auth context
+│   │   └── supabase/         # Supabase client configuration
+│   │       ├── client.ts     # Browser client (for client components)
+│   │       └── server.ts     # Server client (for server components)
+│   └── middleware.ts         # Next.js middleware (auth check on routes)
+├── .env.example              # Example environment variables
+├── .env.local                # Local environment variables (not in git)
+├── .eslintrc.json            # ESLint configuration
+├── .gitignore                # Git ignore rules
+├── CLAUDE.md                 # This file - AI assistant context
+├── next.config.js            # Next.js configuration
+├── next-env.d.ts             # Next.js TypeScript declarations
+├── package.json              # NPM dependencies and scripts
+├── package-lock.json         # NPM lockfile
+├── postcss.config.js         # PostCSS configuration (Tailwind)
+├── PRD-meter-reader-webapp.md # Product Requirements Document
+├── README.md                 # Project README
+├── tailwind.config.ts        # Tailwind CSS configuration
+└── tsconfig.json             # TypeScript configuration
+```
+
+### Key Directory Explanations
+
+**`src/app/`** - Next.js 15 App Router
+- Uses file-based routing (each `page.tsx` is a route)
+- `layout.tsx` files define shared layouts
+- Server Components by default, Client Components use `'use client'`
+
+**`src/lib/actions/`** - Server Actions
+- `'use server'` functions that run on the server
+- Used for mutations (data changes) and API calls
+- Automatically create POST endpoints
+
+**`src/lib/supabase/`** - Supabase Clients
+- Two separate clients for browser vs server environments
+- `client.ts` uses `createBrowserClient` for client components
+- `server.ts` uses `createServerClient` for server components
+
+**`src/middleware.ts`** - Edge Middleware
+- Runs on **every request** before page renders
+- Handles session refresh for Supabase Auth
+- Lightweight authentication checks
+
+**`database/`** - Database Schema
+- Contains SQL files for Supabase setup
+- Version controlled for reproducibility
+- Run manually in Supabase SQL Editor
 
 ## Key Files
 
@@ -163,28 +335,6 @@ MAX_FILE_SIZE_MB=5
    if (!session) redirect('/login');
    ```
 
-## Common Tasks
-
-### Running the Backend
-```bash
-npm install
-npm run dev  # Runs ts-node meter-reader-agent.ts
-```
-
-### Testing API Key
-```bash
-ts-node test-api-key.ts
-```
-
-### Setting up Database
-1. Go to Supabase dashboard
-2. Run `supabase_setup.sql` in SQL Editor
-3. Configure RLS policies as needed
-4. Set up email templates for auth
-
-### Testing Upload
-Open `meter-upload.html` in browser (update endpoint URL if needed)
-
 ## Important Notes
 
 ### Security
@@ -195,9 +345,9 @@ Open `meter-upload.html` in browser (update endpoint URL if needed)
 - **HTTPS**: Required for production deployment
 
 ### Language
-- **Backend Prompts**: German (target market)
-- **Frontend UI**: English (MVP), German planned for later
+- **Frontend**: English (MVP), German planned for later
 - **Comments**: English (code standard)
+- **Database**: English (code standard)
 
 ### Performance
 - Use database views for statistics (not in-app calculations)
@@ -206,7 +356,7 @@ Open `meter-upload.html` in browser (update endpoint URL if needed)
 - Use Supabase connection pooling
 
 ### Known Limitations
-- Images not stored (only readings extracted)
+
 - No OCR fallback if Claude API fails
 - Manual correction requires database update
 - Single language support (MVP)
@@ -266,9 +416,11 @@ See Section 8 in PRD for complete future enhancements:
 - Image storage
 - Bulk operations
 - Third-party integrations
+- Store uploaded image in Supabase storage
+- Image downloadable in readings history
 
 ---
 
 **Last Updated**: 2025-01-13
-**Project Status**: Backend MVP complete, Frontend in planning phase
-**Current Version**: Backend v1.0, Frontend v0.0 (not started)
+**Project Status**: Frontend MVP complete
+**Current Version**: Frontend v0.1.0
