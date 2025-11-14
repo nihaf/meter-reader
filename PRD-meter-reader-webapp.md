@@ -304,7 +304,6 @@ So that duplicates can be prevented before persistence
 - **Authentication**: Supabase Auth (handles user registration, login, sessions, and role management)
 - **Database Client**: Supabase JavaScript Client (@supabase/supabase-js)
 - **Data Visualization**: Chart.js, Recharts, or D3.js
-- **HTTP Client**: Axios (for Claude API calls)
 - **Build Tool**: Vite or Create React App
 
 ### 5.2 Backend API Integration

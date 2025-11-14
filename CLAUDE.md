@@ -6,8 +6,7 @@ This document provides context for AI assistants working on the Meter Reader pro
 
 The Meter Reader application is an AI-powered utility meter reading system that uses Claude Vision API to automatically extract readings from photographs. It consists of:
 
-1. **Frontend Web Application** (React + Tailwind CSS) - User interface for uploading images and managing readings
-2. **Backend API** (Node.js + Express + TypeScript) - Handles image processing via Claude API
+1. **Frontend Web Application** (React + Tailwind CSS) - User interface for uploading images, image processing via Claude API and managing readings
 3. **Database** (Supabase PostgreSQL) - Stores meter readings and user data
 4. **Authentication** (Supabase Auth) - Handles user registration, login, and authorization
 
@@ -19,16 +18,10 @@ The Meter Reader application is an AI-powered utility meter reading system that 
 - **State Management**: Redux
 - **Authentication**: Supabase Auth (@supabase/auth-helpers-react)
 - **Database Client**: Supabase JavaScript Client (@supabase/supabase-js)
-- **Data Visualization**: Chart.js / Recharts / D3.js
-- **HTTP Client**: Axios
-- **Build Tool**: Vite
-
-### Backend (Current Implementation)
-- **Runtime**: Node.js with TypeScript
-- **Framework**: Express.js
-- **File Upload**: Multer (5MB limit)
-- **AI Processing**: Anthropic Claude API (claude-sonnet-4-5-20250929)
 - **Database**: Supabase PostgreSQL
+- **AI Processing**: Anthropic Claude API (claude-sonnet-4-5-20250929)
+- **Data Visualization**: Chart.js / Recharts / D3.js
+- **Build Tool**: Vite
 - **Environment**: dotenv for configuration
 
 ### Database
@@ -68,126 +61,13 @@ The Meter Reader application is an AI-powered utility meter reading system that 
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (React)                         │
-│  - Authentication (Supabase Auth)                           │
-│  - Image Upload UI                                          │
-│  - Reading Management                                       │
-│  - Statistics Dashboard                                     │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      │ HTTP/REST API
-                      │
-┌─────────────────────▼───────────────────────────────────────┐
-│              Backend (Node.js/Express)                      │
-│  - Image Processing (Claude Vision API)                     │
-│  - Multer File Upload                                       │
-│  - Data Validation                                          │
-└─────────────────────┬───────────────────────────────────────┘
-                      │
-                      │ Supabase Client
-                      │
-┌─────────────────────▼───────────────────────────────────────┐
-│                Supabase Services                            │
-│  ┌───────────────────────────────────────────────────┐      │
-│  │  Authentication (Supabase Auth)                   │      │
-│  │  - User Registration                              │      │
-│  │  - Login/Logout                                   │      │
-│  │  - Session Management                             │      │
-│  │  - JWT Tokens                                     │      │
-│  └───────────────────────────────────────────────────┘      │
-│                                                             │
-│  ┌───────────────────────────────────────────────────┐      │
-│  │  Database (PostgreSQL)                            │      │
-│  │  - meter_readings table                           │      │
-│  │  - latest_meter_readings view                     │      │
-│  │  - meter_statistics view                          │      │
-│  │  - Row Level Security (RLS)                       │      │
-│  └───────────────────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────────┘
-                      │
-                      │ HTTP API
-                      │
-┌─────────────────────▼───────────────────────────────────────┐
-│           Anthropic Claude API                              │
-│  - Model: claude-sonnet-4-5-20250929                        │
-│  - Vision API for meter reading extraction                  │
-└─────────────────────────────────────────────────────────────┘
-```
+TODO
 
 ## Project Structure
 
-```
-meter-reader/
-├── backend/                     # Backend API (Node.js/Express)
-│   ├── meter-reader-agent.ts   # Main backend application
-│   ├── types.ts                # TypeScript type definitions
-│   ├── test-api-key.ts        # API key testing script
-│   ├── meter-upload.html      # Simple HTML testing interface
-│   ├── package.json           # Backend dependencies
-│   ├── tsconfig.json          # TypeScript configuration
-│   ├── .env                   # Backend environment variables (not in git)
-│   ├── .env.example           # Environment template
-│   ├── .gitignore             # Backend git ignore
-│   ├── README.md              # Backend documentation
-│   ├── node_modules/          # Dependencies
-│   └── uploads/               # Temporary upload directory
-├── frontend/                   # Frontend web app (Next.js/React)
-│   ├── src/
-│   │   ├── app/               # Next.js app router pages
-│   │   │   ├── layout.tsx    # Root layout
-│   │   │   ├── page.tsx      # Home page
-│   │   │   └── globals.css   # Global styles
-│   │   ├── components/        # React components
-│   │   ├── lib/               # Utilities
-│   │   │   └── supabase/     # Supabase clients
-│   │   │       ├── client.ts # Browser client
-│   │   │       └── server.ts # Server client
-│   │   └── middleware.ts      # Auth middleware
-│   ├── public/                # Static assets
-│   ├── package.json           # Frontend dependencies
-│   ├── .env.example           # Environment template
-│   ├── next.config.js         # Next.js configuration
-│   ├── tailwind.config.ts     # Tailwind CSS configuration
-│   ├── tsconfig.json          # TypeScript configuration
-│   ├── .gitignore             # Frontend git ignore
-│   ├── README.md              # Frontend documentation
-│   └── node_modules/          # Dependencies
-├── CLAUDE.md                   # This file - project context
-├── PRD-meter-reader-webapp.md  # Product Requirements Document
-├── supabase_setup.sql          # Database schema and views
-└── README.md                   # Main project documentation
-```
+TODO
 
 ## Key Files
-
-### Backend (backend/)
-
-**`meter-reader-agent.ts`** - Main backend application
-- Express server on port 3000 (configurable)
-- Multer configuration for file uploads
-- Claude Vision API integration
-- Supabase client for database operations
-- Error handling middleware
-
-**`types.ts`** - Shared TypeScript types
-```typescript
-interface MeterReading {
-  meter_id: string;
-  meter_type: "electricity" | "water" | "gas" | "unknown";
-  reading_value: number;
-  unit: string;
-  confidence: "high" | "medium" | "low";
-  raw_response: string;
-}
-
-interface ProcessingMetrics {
-  processing_time_ms: number;
-  image_size_bytes: number;
-  confidence_score: number;
-}
-```
 
 ### Database
 
@@ -209,112 +89,9 @@ PORT=3000
 MAX_FILE_SIZE_MB=5
 ```
 
-## Database Schema
-
-### Table: `meter_readings`
-```sql
-- id: UUID PRIMARY KEY (auto-generated)
-- meter_id: VARCHAR(255) NOT NULL
-- meter_type: VARCHAR(50) NOT NULL
-- reading_value: DECIMAL(10, 3) NOT NULL
-- unit: unit_type (ENUM)
-- confidence: VARCHAR(20)
-- confidence_score: DECIMAL(3, 2)
-- processing_time_ms: INTEGER
-- image_size_bytes: INTEGER
-- created_at: TIMESTAMPTZ (auto-generated)
-- updated_at: TIMESTAMPTZ (auto-generated)
-```
-
-### View: `meter_statistics`
-```sql
-- total_readings: BIGINT
-- meters_count: BIGINT
-- avg_confidence: NUMERIC
-- meters_by_type: JSONB
-```
-
-## API Endpoints
-
-### Current Backend Endpoints
-
-#### POST `/api/meter-reading`
-Upload meter image for AI processing
-
-**Request:**
-- Content-Type: `multipart/form-data`
-- Field: `image` (file, max 5MB)
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "meter_id": "12345678",
-    "meter_type": "electricity",
-    "reading_value": 1234.567,
-    "unit": "kWh",
-    "confidence": "high",
-    "confidence_score": 0.95,
-    "processing_time_ms": 2341,
-    "image_size_bytes": 1048576,
-    "supabase_id": "uuid",
-    "created_at": "2025-01-13T..."
-  },
-  "timestamp": "2025-01-13T..."
-}
-```
-
-#### GET `/api/readings`
-Fetch all meter readings with optional filters
-
-**Query Parameters:**
-- `limit` - Number of results (default: 100)
-- `offset` - Pagination offset (default: 0)
-- `meter_id` - Filter by specific meter
-- `meter_type` - Filter by type
-
-#### GET `/api/readings/:meter_id`
-Fetch readings for specific meter
-
-#### GET `/api/stats`
-Fetch aggregated statistics from database view
-
-**Query Parameters:**
-- `meter_id` - Optional: stats for specific meter
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "total_readings": 150,
-    "meters_count": 25,
-    "avg_confidence": 0.92,
-    "meters_by_type": {
-      "electricity": 100,
-      "water": 30,
-      "gas": 20
-    }
-  }
-}
-```
-
-#### GET `/health`
-Health check endpoint
-
-### Planned Frontend Integration (via Supabase)
-
-Authentication and data access will be handled directly by Supabase client:
-- `supabase.auth.signUp()` - User registration
-- `supabase.auth.signInWithPassword()` - Login
-- `supabase.auth.signOut()` - Logout
-- `supabase.from('meter_readings').select()` - Query readings
-- `supabase.from('meter_statistics').select().single()` - Get stats
-
 ## Development Guidelines
 
-### When Working on Backend
+### When Working on Frontend
 
 1. **Environment Variables**: Always use `process.env` with proper parsing
    ```typescript
@@ -323,7 +100,7 @@ Authentication and data access will be handled directly by Supabase client:
 
 2. **Type Safety**: Use types from `types.ts` for consistency
    ```typescript
-   import { MeterReading, ApiResponse, ProcessingMetrics } from "./types";
+   import { Foo, Bar, Bazz } from "./types";
    ```
 
 3. **Error Handling**: Always wrap in try-catch and return structured errors
@@ -338,14 +115,9 @@ Authentication and data access will be handled directly by Supabase client:
    ```
 
 4. **Claude API**: Use model `claude-sonnet-4-5-20250929`
-   - Prompt is in German (target audience)
+   - Prompt is in English
    - Explicitly request pure JSON (no markdown formatting)
    - Handle JSON parsing errors
-
-5. **File Uploads**: Multer temporary files must be cleaned up
-   ```typescript
-   fs.unlinkSync(req.file.path); // Always delete after processing
-   ```
 
 ### When Working on Database
 

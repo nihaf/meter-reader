@@ -34,7 +34,7 @@ export async function analyzeMeterImage(
     // Initialize Anthropic client
     const anthropic = new Anthropic({ apiKey })
 
-    // Call Claude Vision API with exact prompt from backend
+    // Call Claude Vision API
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-5-20250929',
       max_tokens: 2048,
@@ -52,29 +52,29 @@ export async function analyzeMeterImage(
             },
             {
               type: 'text',
-              text: `Analysiere dieses Bild eines Zählerstands (Stromzähler, Wasserzähler oder Gaszähler) und extrahiere folgende Informationen im JSON-Format:
+              text: `Analyze this image of a meter reading (electricity meter, water meter, or gas meter) and extract the following information in JSON format:
 
 {
-  "meter_id": "Die ID/Seriennummer des Zählers (falls sichtbar, sonst 'UNKNOWN')",
+  "meter_id": "The ID/serial number of the meter (if visible, otherwise 'UNKNOWN')",
   "meter_type": "electricity" | "water" | "gas" | "unknown",
-  "reading_value": Die Zahl die der Zähler anzeigt (nur Ziffern, als Nummer),
+  "reading_value": The number displayed by the meter (digits only, as a number),
   "unit": "kWh" | "m3" | "unknown",
   "confidence": "high" | "medium" | "low",
-  "confidence_score": 0.0 bis 1.0 (numerischer Wert)
+  "confidence_score": 0.0 to 1.0 (numeric value)
 }
 
-Wichtig:
-- Erkenne den Zählertyp basierend auf Design und Beschriftung
-- Extrahiere die angezeigte Zahl genau
-- Die Meter-ID ist normalerweise auf dem Zähler gedruckt (rechts oben oder unten)
-- Setze confidence basierend auf Bildqualität, Lesbarkeit und Deutlichkeit
-- confidence_score sollte zwischen 0.0 (sehr unsicher) und 1.0 (sehr sicher) liegen
-- Antworte NUR mit reinem JSON-Objekt
-- Nur das reine JSON-Objekt liefern!
-- KEINE Markdown-Formatierung
-- Keine zusätzlichen Erklärungen oder Text
-- Beachte bei Stromzählern: Die letzte angezeigte Ziffer steht IMMER hinter dem Dezimalkomma.
-- Beachte bei Gaszählern: Die letzten DREI Ziffern (oft rot markiert) stehen hinter dem Dezimalkomma. Der Zähler zeigt drei Nachkommastellen an.`,
+Important:
+- Identify the meter type based on design and labeling
+- Extract the displayed number accurately
+- The meter ID is usually printed on the meter (top right or bottom)
+- Set confidence based on image quality, readability, and clarity
+- confidence_score should be between 0.0 (very uncertain) and 1.0 (very certain)
+- Respond ONLY with a pure JSON object
+- Deliver only the pure JSON object!
+- NO Markdown formatting
+- No additional explanations or text
+- Note for electricity meters: The last digit displayed is ALWAYS after the decimal point.
+- Note for gas meters: The last THREE digits (often marked in red) are after the decimal point. The meter displays three decimal places.`,
             },
           ],
         },
