@@ -151,17 +151,17 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="space-y-24">
+    <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Upload Meter Reading</h1>
-        <p className="mt-8 text-gray-600">
+        <p className="mt-2 text-gray-600">
           Upload a photo of your utility meter for AI analysis
         </p>
       </div>
 
       <div className="bg-white shadow rounded-lg">
-        <div className="px-16 py-16">
-          <div className="space-y-32">
+        <div className="p-4">
+          <div className="space-y-8">
             {/* File Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -172,10 +172,10 @@ export default function UploadPage() {
                   htmlFor="file-upload"
                   className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
                 >
-                  <div className="flex justify-center p-32 border-2 border-gray-300 border-dashed rounded-xl">
+                  <div className="flex justify-center p-8 border-2 border-gray-300 border-dashed rounded-xl">
                     <div className="space-y-4 text-center">
                       <svg
-                        className="mx-auto h-48 w-48 text-gray-400"
+                        className="mx-auto h-12 w-12 text-gray-400"
                         stroke="currentColor"
                         fill="none"
                         viewBox="0 0 48 48"
@@ -213,7 +213,7 @@ export default function UploadPage() {
             {/* Image Preview */}
             {preview && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-8">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Preview
                 </label>
                 <div className="relative max-w-2xl mx-auto">
@@ -228,9 +228,9 @@ export default function UploadPage() {
                       setPreview(null)
                       setExtractedData(null)
                     }}
-                    className="absolute top-8 right-8 bg-red-500 text-white rounded-full p-4 hover:bg-red-600"
+                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-3 hover:bg-red-600"
                   >
-                    <svg className="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -244,11 +244,11 @@ export default function UploadPage() {
                 <button
                   onClick={handleAnalyze}
                   disabled={analyzing}
-                  className="inline-flex justify-center py-8 px-16 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {analyzing ? (
                     <>
-                      <svg className="animate-spin -ml-8 mr-16 h-24 w-24 text-white" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin mr-4 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
@@ -263,9 +263,9 @@ export default function UploadPage() {
 
             {/* Error Message */}
             {error && (
-              <div className="rounded-md bg-red-50 p-16">
+              <div className="rounded-md bg-red-50 p-4">
                 <div className="flex">
-                  <svg className="h-20 w-20 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
                   <div className="ml-16">
@@ -277,9 +277,9 @@ export default function UploadPage() {
 
             {/* Success Message */}
             {success && (
-              <div className="rounded-md bg-green-50 p-16">
+              <div className="rounded-md bg-green-50 p-4">
                 <div className="flex">
-                  <svg className="h-20 w-20 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
                   <div className="ml-16">
@@ -291,18 +291,18 @@ export default function UploadPage() {
 
             {/* Correction Form */}
             {extractedData && !success && (
-              <div className="border-t border-gray-200 pt-24">
-                <div className="mb-16">
+              <div className="border-t border-gray-200 pt-6">
+                <div className="mb-4">
                   <h3 className="text-lg font-medium text-gray-900">Review & Correct Extracted Data</h3>
-                  <p className="text-sm text-gray-500 mt-4">Please review the extracted values and make corrections if needed.</p>
-                  <div className="mt-8">
-                    <span className={`px-8 py-4 inline-flex text-xs leading-5 font-semibold rounded-full ${getConfidenceColor(extractedData.confidence)}`}>
+                  <p className="text-sm text-gray-500 mt-2">Please review the extracted values and make corrections if needed.</p>
+                  <div className="mt-2">
+                    <span className={`p-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getConfidenceColor(extractedData.confidence)}`}>
                       Confidence: {extractedData.confidence} ({Math.round(extractedData.confidence_score * 100)}%)
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-16">
+                <div className="space-y-4">
                   {/* Meter ID */}
                   <div>
                     <label htmlFor="meter_id" className="block text-sm font-medium text-gray-700">
@@ -313,7 +313,7 @@ export default function UploadPage() {
                       id="meter_id"
                       value={meterId}
                       onChange={(e) => setMeterId(e.target.value)}
-                      className="mt-4 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-12 py-8 border"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                       placeholder="Enter meter ID or serial number"
                     />
                   </div>
@@ -327,7 +327,7 @@ export default function UploadPage() {
                       id="meter_type"
                       value={meterType}
                       onChange={(e) => setMeterType(e.target.value as any)}
-                      className="mt-4 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-12 py-8 border"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                     >
                       <option value="electricity">Electricity</option>
                       <option value="water">Water</option>
@@ -345,7 +345,7 @@ export default function UploadPage() {
                       id="reading_value"
                       value={readingValue}
                       onChange={(e) => setReadingValue(e.target.value)}
-                      className="mt-4 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-12 py-8 border"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                       placeholder="Enter reading value"
                     />
                   </div>
@@ -359,7 +359,7 @@ export default function UploadPage() {
                       id="unit"
                       value={unit}
                       onChange={(e) => setUnit(e.target.value)}
-                      className="mt-4 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-12 py-8 border"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                     >
                       <option value="kWh">kWh</option>
                       <option value="m3">m³</option>
@@ -370,7 +370,7 @@ export default function UploadPage() {
                 </div>
 
                 {/* Accept & Save Button */}
-                <div className="mt-24 flex justify-end gap-12">
+                <div className="mt-6 flex justify-end gap-3">
                   <button
                     onClick={() => {
                       setExtractedData(null)
@@ -379,18 +379,18 @@ export default function UploadPage() {
                       setReadingValue('')
                       setUnit('unknown')
                     }}
-                    className="inline-flex justify-center py-8 px-16 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAcceptAndSave}
                     disabled={saving || !readingValue}
-                    className="inline-flex justify-center py-8 px-16 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {saving ? (
                       <>
-                        <svg className="animate-spin -ml-8 mr-16 h-24 w-24 text-white" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin mr-4 h-5 text-white" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>

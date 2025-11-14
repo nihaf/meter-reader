@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
+import LoadingSpinner from '@/components/LoadingSpinner'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -109,30 +110,23 @@ export default function StatisticsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-88">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-          <p className="mt-16 text-gray-600">Loading statistics...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner size="lg" text="Loading Statistics..." className="py-7" />
   }
 
   const meterIds = Object.keys(readingsByMeter)
   const hasData = meterIds.length > 0
 
   return (
-    <div className="space-y-24">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Statistics</h1>
-        <p className="mt-8 text-gray-600">
+        <p className="mt-2 text-gray-600">
           Visualize and analyze your meter reading data
         </p>
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-16">
+        <div className="rounded-md bg-red-50 p-4">
           <div className="flex">
             <div className="ml-16">
               <h3 className="text-sm font-medium text-red-800">{error}</h3>
@@ -144,7 +138,7 @@ export default function StatisticsPage() {
       {!hasData ? (
         <div className="text-center bg-white rounded-lg shadow">
           <svg
-            className="mx-auto h-48 w-48 text-gray-400"
+            className="mx-auto h-12 w-12 text-gray-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -156,11 +150,11 @@ export default function StatisticsPage() {
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
             />
           </svg>
-          <h3 className="mt-8 text-sm font-medium text-gray-900">No data available</h3>
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No data available</h3>
           <p className="mt-4 text-sm text-gray-500">Upload some meter readings to see statistics.</p>
         </div>
       ) : (
-        <div className="space-y-24">
+        <div className="space-y-6">
           {meterIds.map((meterId) => {
             const readings = readingsByMeter[meterId]
             const timeSeriesData = prepareTimeSeriesDataForMeter(meterId, readings)
@@ -169,13 +163,13 @@ export default function StatisticsPage() {
             const avgConfidence = (readings.reduce((sum, r) => sum + r.confidence_score, 0) / readings.length).toFixed(1)
 
             return (
-              <div key={meterId} className="bg-white p-24 rounded-lg shadow">
-                <div className="flex justify-between items-start mb-16">
+              <div key={meterId} className="bg-white p-6 rounded-lg shadow">
+                <div className="flex justify-between items-start mb-4">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-900">
                       Meter: {meterId}
                     </h2>
-                    <div className="mt-8 flex gap-16 text-sm text-gray-600">
+                    <div className="mt-2 flex gap-4 text-sm text-gray-600">
                       <span className="px-8 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
                         {meterType}
                       </span>

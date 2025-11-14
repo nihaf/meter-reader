@@ -72,7 +72,7 @@ The Meter Reader application follows a modern **serverless Next.js architecture*
 │  │  Next.js 15 Frontend (React 19 + Tailwind CSS)   │   │
 │  │  - Server Components (RSC)                       │   │
 │  │  - Client Components (Hydration)                 │   │
-│  │  - Middleware (Auth Check)                       │   │
+│  │  - Proxy (Auth Check)                            │   │
 │  └──────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────┘
                            │
@@ -111,7 +111,7 @@ The Meter Reader application follows a modern **serverless Next.js architecture*
    - Server-side rendering for initial page load
    - Client-side hydration for interactivity
    - Server Actions for mutations (image upload, data saving)
-   - Middleware for authentication checks
+   - Proxy function for authentication checks (Edge Runtime)
 
 2. **Supabase as Backend-as-a-Service**
    - PostgreSQL database with Row Level Security (RLS)
@@ -127,7 +127,7 @@ The Meter Reader application follows a modern **serverless Next.js architecture*
 
 4. **Authentication Flow**
    - Supabase Auth with JWT tokens
-   - Middleware intercepts all requests to check session
+   - Proxy function intercepts all requests to check session
    - Protected routes via `ProtectedRoute` component
    - Server-side user context via cookies
 
@@ -144,7 +144,7 @@ The Meter Reader application follows a modern **serverless Next.js architecture*
 
 - **Row Level Security (RLS)**: All database queries filtered by `user_id`
 - **JWT Tokens**: Managed by Supabase Auth, stored in HTTP-only cookies
-- **Middleware**: Session validation on every request
+- **Proxy Function**: Session validation on every request (runs at Edge)
 - **Environment Variables**: API keys never exposed to client
 - **CORS**: Next.js handles CORS automatically
 - **File Size Limits**: 5MB enforced via Next.js config
@@ -195,7 +195,7 @@ meter-reader/
 │   │   └── supabase/         # Supabase client configuration
 │   │       ├── client.ts     # Browser client (for client components)
 │   │       └── server.ts     # Server client (for server components)
-│   └── middleware.ts         # Next.js middleware (auth check on routes)
+│   └── proxy.ts              # Next.js proxy (auth check on routes)
 ├── .env.example              # Example environment variables
 ├── .env.local                # Local environment variables (not in git)
 ├── .eslintrc.json            # ESLint configuration
@@ -229,10 +229,11 @@ meter-reader/
 - `client.ts` uses `createBrowserClient` for client components
 - `server.ts` uses `createServerClient` for server components
 
-**`src/middleware.ts`** - Edge Middleware
-- Runs on **every request** before page renders
+**`src/proxy.ts`** - Edge Proxy
+- Runs on **every request** before page renders (at Edge Runtime)
 - Handles session refresh for Supabase Auth
 - Lightweight authentication checks
+- Previously called `middleware.ts` (renamed in Next.js 16)
 
 **`database/`** - Database Schema
 - Contains SQL files for Supabase setup
@@ -397,13 +398,17 @@ curl http://localhost:3000/api/stats
 
 ## Recent Changes
 
-1. Translated all German comments to English in backend code
-2. Created database view `meter_statistics` for optimized stats queries
-3. Added columns: `confidence_score`, `processing_time_ms`, `image_size_bytes`
-4. Updated Claude model to `claude-sonnet-4-5-20250929`
-5. Fixed prompt to return pure JSON (no markdown)
-6. Extracted types to separate `types.ts` file
-7. Created comprehensive PRD with Supabase Auth integration
+1. **Migrated from middleware.ts to proxy.ts** (Next.js 16 requirement)
+   - Renamed `middleware.ts` to `proxy.ts`
+   - Changed exported function from `middleware` to `proxy`
+   - Updated all documentation references
+2. Translated all German comments to English in backend code
+3. Created database view `meter_statistics` for optimized stats queries
+4. Added columns: `confidence_score`, `processing_time_ms`, `image_size_bytes`
+5. Updated Claude model to `claude-sonnet-4-5-20250929`
+6. Fixed prompt to return pure JSON (no markdown)
+7. Extracted types to separate `types.ts` file
+8. Created comprehensive PRD with Supabase Auth integration
 
 ## Future Roadmap
 

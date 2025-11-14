@@ -445,7 +445,7 @@ All authentication is handled by Supabase Auth, leveraging its built-in features
 
 - Mobile-responsive design (breakpoints: 320px, 768px, 1024px, 1440px)
 - Touch-friendly UI elements (minimum 48x48px tap targets)
-- Utilize the "8pt grid system"
+- Consistent spacing using Tailwind CSS default spacing scale
 - Keyboard navigation support
 - Accessibility (WCAG 2.1 AA compliance)
 - Error messages as notifications with actionable guidance

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
+import LoadingSpinner from './LoadingSpinner'
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -15,14 +16,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }, [user, loading, router])
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-          <p className="mt-16 text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner size="lg" className="min-h-screen" />
   }
 
   if (!user) {

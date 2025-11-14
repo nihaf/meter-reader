@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
+import LoadingSpinner from '@/components/LoadingSpinner'
 
 interface Statistics {
   total_readings: number
@@ -49,27 +50,20 @@ export default function DashboardPage() {
   }, [user, supabase])
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-88">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-          <p className="mt-16 text-gray-600">Loading statistics...</p>
-        </div>
-      </div>
-    )
+    return <LoadingSpinner size="lg" text="Loading Readings..." className="py-7" />
   }
 
   return (
-    <div className="space-y-24">
+    <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-8 text-gray-600">
+        <p className="mt-2 text-gray-600">
           Welcome back, {user?.user_metadata?.full_name || user?.email}
         </p>
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-16">
+        <div className="rounded-md bg-red-50 p-4">
           <div className="flex">
             <div className="ml-16">
               <h3 className="text-sm font-medium text-red-800">{error}</h3>
@@ -79,13 +73,13 @@ export default function DashboardPage() {
       )}
 
       {stats && (
-        <div className="grid grid-cols-1 gap-16 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-16">
+            <div className="p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-24 w-24 text-gray-400"
+                    className="h-8 w-8 text-gray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -109,11 +103,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-16">
+            <div className="p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-24 w-24 text-gray-400"
+                    className="h-8 w-8 text-gray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -137,11 +131,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-16">
+            <div className="p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-24 w-24 text-gray-400"
+                    className="h-8 w-8 text-gray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -165,11 +159,11 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-16">
+            <div className="p-4">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <svg
-                    className="h-24 w-24 text-gray-400"
+                    className="h-8 w-8 text-gray-400"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -198,11 +192,11 @@ export default function DashboardPage() {
 
       {stats && stats.meters_by_type && (
         <div className="bg-white shadow rounded-lg">
-          <div className="px-16 py-16 border-b border-gray-200">
+          <div className="p-4 border-b border-gray-200">
             <h3 className="text-lg font-medium text-gray-900">Meters by Type</h3>
           </div>
-          <div className="px-16 py-16">
-            <dl className="grid grid-cols-1 gap-16 sm:grid-cols-3">
+          <div className="p-4">
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {Object.entries(stats.meters_by_type).map(([type, count]) => (
                 <div key={type} className="flex flex-col">
                   <dt className="text-sm font-medium text-gray-500 capitalize">{type}</dt>

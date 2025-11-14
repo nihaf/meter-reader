@@ -22,7 +22,7 @@ meter-reader/
 │   │   ├── supabase/         # Supabase client configuration
 │   │   ├── context/          # React Context providers
 │   │   └── hooks/            # Custom React hooks
-│   └── middleware.ts         # Authentication middleware
+│   └── proxy.ts              # Authentication proxy (Edge Runtime)
 ├── database/
 │   └── supabase_setup.sql    # Database schema and RLS policies
 ├── public/                    # Static assets
@@ -114,7 +114,7 @@ The application will be available at `http://localhost:3000`
 - Node.js 18+
 - npm or yarn
 - Next.js 15 (React 19)
-- Tailwind CSS with 8pt grid system
+- Tailwind CSS
 - Anthropic Claude API
 - Supabase PostgreSQL
 - Supabase Auth
@@ -174,7 +174,7 @@ See [PRD-meter-reader-webapp.md](PRD-meter-reader-webapp.md) Section 8 for compl
 **Solution**:
 - Clear browser cookies and local storage
 - Check that `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are correctly set
-- Verify middleware configuration in `src/middleware.ts`
+- Verify proxy configuration in `src/proxy.ts`
 - Check Supabase Auth settings (email confirmation, etc.)
 
 #### Image Upload Issues

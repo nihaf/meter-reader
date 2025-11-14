@@ -15,21 +15,22 @@
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.48.1",
     "chart.js": "^4.4.9",
-    "next": "^15.1.6",
+    "next": "^16.0.3",
     "react": "^19.0.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "^19.0.0",
     "react-redux": "^9.2.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.6",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^24.10.1",
     "@types/react": "^19.0.6",
     "@types/react-dom": "^19.0.2",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.18.0",
-    "eslint-config-next": "^15.1.6",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.18",
+    "eslint-config-next": "^16.0.3",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.17",
     "typescript": "^5.7.3"
   }
 }

@@ -8,7 +8,6 @@ interface PaginationProps {
   totalCount: number
   itemsPerPage: number
   onPageChange: (page: number) => void
-  className?: string
 }
 
 const Pagination: FC<PaginationProps> = ({
@@ -17,7 +16,6 @@ const Pagination: FC<PaginationProps> = ({
   totalCount,
   itemsPerPage,
   onPageChange,
-  className = '',
 }) => {
   const startItem = (currentPage - 1) * itemsPerPage + 1
   const endItem = Math.min(currentPage * itemsPerPage, totalCount)
@@ -34,20 +32,20 @@ const Pagination: FC<PaginationProps> = ({
   }
 
   return (
-    <div className={`bg-white px-16 py-16 flex items-center justify-between border-t border-gray-200 ${className}`}>
+    <div className={`bg-white p-4 flex items-center justify-between border-t border-gray-200`}>
       {/* Mobile Pagination */}
       <div className="flex-1 flex justify-between sm:hidden">
         <button
           onClick={() => goToPage(currentPage - 1)}
           disabled={currentPage === 1}
-          className="relative inline-flex items-center px-16 py-8 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="relative inline-flex items-center px-4 px-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Previous
         </button>
         <button
           onClick={() => goToPage(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="ml-12 relative inline-flex items-center px-16 py-8 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-12 relative inline-flex items-center px-4 px-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Next
         </button>
@@ -62,15 +60,15 @@ const Pagination: FC<PaginationProps> = ({
           </p>
         </div>
         <div>
-          <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+          <nav className="relative inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
             {/* Previous Button */}
             <button
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 1}
-              className="relative inline-flex items-center px-8 py-8 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-1 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Previous</span>
-              <svg className="h-20 w-20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
             </button>
@@ -92,7 +90,7 @@ const Pagination: FC<PaginationProps> = ({
                 <button
                   key={pageNumber}
                   onClick={() => goToPage(pageNumber)}
-                  className={`relative inline-flex items-center px-16 py-8 border text-sm font-medium ${
+                  className={`relative inline-flex items-center px-4 py-1 border text-sm font-medium ${
                     currentPage === pageNumber
                       ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
                       : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
@@ -107,10 +105,10 @@ const Pagination: FC<PaginationProps> = ({
             <button
               onClick={() => goToPage(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className="relative inline-flex items-center px-8 py-8 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-1 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="sr-only">Next</span>
-              <svg className="h-20 w-20" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
               </svg>
             </button>
