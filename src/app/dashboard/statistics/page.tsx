@@ -57,23 +57,49 @@ export default function StatisticsPage() {
 
   const fetchData = async () => {
     try {
-      // Fetch all readings for the user (up to 10000)
-      const { data: allReadings, error: readingsError } = await supabase
-        .from('meter_readings')
-        .select('*')
-        .order('created_at', { ascending: true })
-        .limit(10000)
+      // Step 1: Fetch all unique meter IDs from latest_meter_readings view
+      const { data: latestReadings, error: latestError } = await supabase
+        .from('latest_meter_readings')
+        .select('meter_id')
 
-      if (readingsError) throw readingsError
+      if (latestError) throw latestError
+
+      // Extract unique meter IDs
+      const uniqueMeterIds = [...new Set((latestReadings || []).map(r => r.meter_id))]
+
+      if (uniqueMeterIds.length === 0) {
+        setReadingsByMeter({})
+        return
+      }
+
+      // Step 2: Fetch latest 100 readings for each meter in parallel
+      const fetchPromises = uniqueMeterIds.map(async (meterId) => {
+        const { data, error } = await supabase
+          .from('meter_readings')
+          .select('*')
+          .eq('meter_id', meterId)
+          .order('created_at', { ascending: false })
+          .limit(100)
+
+        if (error) {
+          console.error(`Error fetching readings for meter ${meterId}:`, error)
+          return { meterId, readings: [] }
+        }
+
+        // Reverse to get chronological order (oldest to newest)
+        return { meterId, readings: (data || []).reverse() }
+      })
+
+      // Step 3: Wait for all fetches to complete
+      const results = await Promise.all(fetchPromises)
 
       // Group readings by meter_id
-      const groupedReadings = (allReadings || []).reduce((acc: Record<string, MeterReading[]>, reading: MeterReading) => {
-        if (!acc[reading.meter_id]) {
-          acc[reading.meter_id] = []
+      const groupedReadings: Record<string, MeterReading[]> = {}
+      results.forEach(({ meterId, readings }) => {
+        if (readings.length > 0) {
+          groupedReadings[meterId] = readings
         }
-        acc[reading.meter_id].push(reading)
-        return acc
-      }, {})
+      })
 
       setReadingsByMeter(groupedReadings)
     } catch (err) {
@@ -84,23 +110,36 @@ export default function StatisticsPage() {
     }
   }
 
-  // Prepare chart data for a specific meter
+  // Prepare chart data for a specific meter showing consumption differences
   const prepareTimeSeriesDataForMeter = (meterId: string, readings: MeterReading[]) => {
     const sortedReadings = [...readings].sort(
       (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     )
 
-    const labels = sortedReadings.map((r) =>
-      new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    )
+    // Calculate differences between consecutive readings
+    const differences: number[] = []
+    const labels: string[] = []
 
-    const data = sortedReadings.map(r => r.reading_value)
+    for (let i = 1; i < sortedReadings.length; i++) {
+      const currentReading = sortedReadings[i]
+      const previousReading = sortedReadings[i - 1]
+      const difference = currentReading.reading_value - previousReading.reading_value
+
+      differences.push(difference)
+      labels.push(
+        new Date(currentReading.created_at).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        })
+      )
+    }
 
     return {
       labels,
       datasets: [{
-        label: `${meterId} (${readings[0]?.unit || ''})`,
-        data,
+        label: `Consumption - ${meterId} (${readings[0]?.unit || ''})`,
+        data: differences,
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.3,
@@ -162,6 +201,14 @@ export default function StatisticsPage() {
             const totalReadings = readings.length
             const avgConfidence = (readings.reduce((sum, r) => sum + r.confidence_score, 0) / readings.length).toFixed(1)
 
+            // Calculate total consumption (difference between first and last reading)
+            const sortedReadings = [...readings].sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            )
+            const totalConsumption = sortedReadings.length > 1
+              ? (sortedReadings[sortedReadings.length - 1].reading_value - sortedReadings[0].reading_value).toFixed(2)
+              : '0'
+
             return (
               <div key={meterId} className="bg-white p-6 rounded-lg shadow">
                 <div className="flex justify-between items-start mb-4">
@@ -169,11 +216,12 @@ export default function StatisticsPage() {
                     <h2 className="text-xl font-semibold text-gray-900">
                       Meter: {meterId}
                     </h2>
-                    <div className="mt-2 flex gap-4 text-sm text-gray-600">
-                      <span className="px-8 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
+                    <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+                      <span className="px-3 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800 capitalize">
                         {meterType}
                       </span>
                       <span>{totalReadings} readings</span>
+                      <span>Total Consumption: {totalConsumption} {readings[0]?.unit}</span>
                       <span>Avg. Confidence: {avgConfidence}%</span>
                     </div>
                   </div>
@@ -194,16 +242,16 @@ export default function StatisticsPage() {
                       },
                       scales: {
                         y: {
-                          beginAtZero: false,
+                          beginAtZero: true,
                           title: {
                             display: true,
-                            text: readings[0]?.unit || 'Value'
+                            text: `Consumption (${readings[0]?.unit || 'Value'})`
                           }
                         },
                         x: {
                           title: {
                             display: true,
-                            text: 'Date'
+                            text: 'Reading Date'
                           }
                         }
                       },
