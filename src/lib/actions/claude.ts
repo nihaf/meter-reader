@@ -81,9 +81,27 @@ Important:
       ],
     })
 
-    // Extract response text
-    const responseText =
-      response.content[0].type === 'text' ? response.content[0].text : ''
+    // Validate response structure
+    if (!response || !response.content || !Array.isArray(response.content) || response.content.length === 0) {
+      throw new Error('Invalid response structure from Claude API')
+    }
+
+    const firstContent = response.content[0]
+    if (!firstContent || typeof firstContent !== 'object' || firstContent.type !== 'text') {
+      throw new Error(`Unexpected response type from Claude: ${firstContent?.type || 'undefined'}`)
+    }
+
+    // Extract response text safely
+    const responseText = String(firstContent.text || '')
+
+    if (!responseText) {
+      throw new Error('Empty response text from Claude')
+    }
+
+    // Detect if response looks like Base64 data (common mobile browser issue)
+    if (/^[A-Za-z0-9+/=]{20,}$/.test(responseText.substring(0, 100).replace(/\s/g, ''))) {
+      throw new Error('Received Base64 data instead of JSON response. This may be a mobile browser compatibility issue.')
+    }
 
     // Parse JSON response (remove markdown if present)
     let parsedResponse: ClaudeResponse
@@ -92,10 +110,16 @@ Important:
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
         .trim()
+
+      if (!cleanedResponse.startsWith('{')) {
+        throw new Error(`Response does not start with JSON object: ${cleanedResponse.substring(0, 50)}`)
+      }
+
       parsedResponse = JSON.parse(cleanedResponse)
     } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown parsing error'
       throw new Error(
-        `Invalid JSON response from Claude: ${responseText.substring(0, 200)}`
+        `Invalid JSON response from Claude (${errorMessage}): ${responseText.substring(0, 200)}`
       )
     }
 
