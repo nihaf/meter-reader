@@ -197,7 +197,6 @@ export default function UploadPage() {
                             type="file"
                             className="sr-only"
                             accept="image/*"
-                            capture="environment"
                             onChange={handleFileSelect}
                           />
                         </span>
