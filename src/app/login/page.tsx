@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { XCircleIcon } from '@heroicons/react/24/solid'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -56,9 +57,10 @@ export default function LoginPage() {
         </div>
         <form className="mt-2 space-y-6" onSubmit={handleLogin}>
           {error && (
-            <div className="rounded-md bg-red-50">
+            <div className="rounded-md bg-red-50 p-4">
               <div className="flex">
-                <div className="ml-16">
+                <XCircleIcon className="h-5 w-5 text-red-400" />
+                <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">{error}</h3>
                 </div>
               </div>

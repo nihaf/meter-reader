@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/solid'
 
 export default function SignupPage() {
   const [email, setEmail] = useState('')
@@ -85,7 +86,8 @@ export default function SignupPage() {
           {error && (
             <div className="rounded-md bg-red-50 p-4">
               <div className="flex">
-                <div className="ml-4">
+                <XCircleIcon className="h-5 w-5 text-red-400" />
+                <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">{error}</h3>
                 </div>
               </div>
@@ -94,7 +96,8 @@ export default function SignupPage() {
           {success && (
             <div className="rounded-md bg-green-50 p-4">
               <div className="flex">
-                <div className="ml-4">
+                <CheckCircleIcon className="h-5 w-5 text-green-400" />
+                <div className="ml-3">
                   <h3 className="text-sm font-medium text-green-800">
                     Account created successfully! Redirecting to login...
                   </h3>

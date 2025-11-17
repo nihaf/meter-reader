@@ -5,6 +5,8 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
 import Pagination from '@/components/Pagination'
 import LoadingSpinner from '@/components/LoadingSpinner'
+import { XCircleIcon } from '@heroicons/react/24/solid'
+import { DocumentTextIcon } from '@heroicons/react/24/outline'
 
 interface MeterReading {
   id: string
@@ -110,7 +112,8 @@ export default function ReadingsPage() {
       {error && (
         <div className="rounded-md bg-red-50 p-4">
           <div className="flex">
-            <div className="ml-16">
+            <XCircleIcon className="h-5 w-5 text-red-400" />
+            <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">{error}</h3>
             </div>
           </div>
@@ -118,26 +121,14 @@ export default function ReadingsPage() {
       )}
 
       {readings.length === 0 ? (
-        <div className="text-center py-88 bg-white rounded-lg shadow">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
+        <div className="text-center py-8 bg-white rounded-lg shadow">
+          <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400"></DocumentTextIcon>
           <h3 className="mt-2 text-sm font-medium text-gray-900">No readings yet</h3>
-          <p className="mt-4 text-sm text-gray-500">Get started by uploading your first meter reading.</p>
-          <div className="mt-24">
+          <p className="mt-2 text-sm text-gray-500">Get started by uploading your first meter reading.</p>
+          <div className="mt-8">
             <a
               href="/dashboard/upload"
-              className="inline-flex items-center px-4 px-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Upload Reading
             </a>

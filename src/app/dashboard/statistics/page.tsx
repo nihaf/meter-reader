@@ -15,6 +15,7 @@ import {
   Legend,
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
+import { XCircleIcon } from '@heroicons/react/24/solid'
 
 // Register ChartJS components
 ChartJS.register(
@@ -167,7 +168,8 @@ export default function StatisticsPage() {
       {error && (
         <div className="rounded-md bg-red-50 p-4">
           <div className="flex">
-            <div className="ml-16">
+            <XCircleIcon className="h-5 w-5 text-red-400" />
+            <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">{error}</h3>
             </div>
           </div>
